@@ -27,6 +27,8 @@ ParadoxUI Granite supports devices using the Exynos 9820, Exynos 990, Exynos 210
 
 Any form of contribution, suggestions, bug report or feature request for the project will be welcome.
 
+# THIS ROM IS A EXPERIMENT AND MAY HAVE SOME UNAUTHORED FEATURES, THIS PROJECT WILL NEVER BE RELEASED WITOUTH GIVING PROPER CREDITS
+
 # Features
 - Based on the latest stable OneUI 8.5 Galaxy S26+ firmware
 - All software features from S26+
