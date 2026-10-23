@@ -1,4 +1,4 @@
-name: Build MonsterROM
+name: Build ParadoxUI
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [y2s,x1s]
+        target: [y2s,x1s,r8s,z3s,beyond1lte,beyond0lte,beyond2lte]
 
     steps:
       - name: Checkout repo
@@ -89,7 +89,7 @@ jobs:
       - name: Upload ROM Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MonsterROM-${{ matrix.target }}
+          name: ParadoxUI-${{ matrix.target }}
           path: |
             out/*.tar*
             out/*.zip*
