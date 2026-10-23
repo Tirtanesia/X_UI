@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="paradox_center_bat_capacity">Real Capacity</string>
+<string name="paradox_center_bat_cycles">Charge Cycles</string>
+<string name="paradox_center_bat_health">Real Health</string>
+<string name="paradox_center_bat_temp">Battery Temperature</string>
+<string name="paradox_center_category_battery">Battery</string>
+<string name="paradox_center_category_realtime">Real-time System</string>
+<string name="paradox_center_cpu_temp">CPU Temperature</string>
+<string name="paradox_center_gpu_oc">GPU Overclock</string>
+<string name="paradox_center_gpu_oc_summary">Unlocks maximum frequencies</string>
+<string name="paradox_center_ram">RAM Usage</string>
+<string name="paradox_center_title">The Diving Core</string>
+</resources>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="paradox_anti_tracking_summary">Cierra los puertos de telemetría, bloqueando el envío de diagnósticos a Samsung. Ahorra CPU y datos.</string>
+<string name="paradox_anti_tracking_title">Modo Privacidad Absoluta</string>
+<string name="paradox_app_manager_summary">Congela o reactiva cualquier aplicación del sistema sin restricciones.</string>
+<string name="paradox_app_manager_title">Gestor de Apps Paradox</string>
+<string name="paradox_audio_dac_title">Desbloqueo de Audio Bluetooth</string>
+<string name="paradox_bat_current_neutral">Corriente de Carga/Descarga</string>
+<string name="paradox_cat_exclusive_settings">Ajustes Paradox (Exclusivos)</string>
+<string name="paradox_cat_info">Información y Contacto</string>
+<string name="paradox_cat_smart_resource_mgmt">Gestión Inteligente de Recursos</string>
+<string name="paradox_center_category_battery">Batería</string>
+<string name="paradox_center_category_realtime">Sistema en tiempo real</string>
+<string name="paradox_center_cpu_temp">Temperatura CPU</string>
+<string name="paradox_center_gpu_oc">Overclock GPU</string>
+<string name="paradox_center_gpu_oc_summary">Desbloquea frecuencias máximas</string>
+<string name="paradox_center_title">The Diving Core</string>
+<string name="paradox_changelog_summary">Descubre todas las novedades y correcciones.</string>
+<string name="paradox_changelog_title">Registro de Cambios (Changelog)</string>
+<string name="paradox_deep_sleep_summary">Congela procesos en caché para liberar 100% de la CPU al juego (Requiere reinicio).</string>
+<string name="paradox_deep_sleep_title">Hibernación Profunda (Deep Sleep)</string>
+<string name="paradox_max_refresh_sum">Actual: %1$s</string>
+<string name="paradox_max_refresh_title">Tasa de refresco máxima</string>
+<string name="paradox_mgr_search_desc">Toca para filtrar por nombre o paquete</string>
+<string name="paradox_mgr_search_hint">Buscador de aplicaciones...</string>
+<string name="paradox_restore_refresh_summary">Restaurar modo adaptativo por defecto</string>
+<string name="paradox_restore_refresh_title">Restaurar Tasa de Refresco</string>
+<string name="paradox_site_summary">Visita nuestra página web oficial.</string>
+<string name="paradox_site_title">Sitio de Paradox Hub</string>
+<string name="paradox_telegram_summary">Únete a nuestra comunidad para noticias y soporte.</string>
+<string name="paradox_telegram_title">Canal Paradox Hub Telegram</string>
+<string name="paradox_toast_reboot">Reinicio requerido para aplicar cambios.</string>
+<string name="paradox_toast_refresh">Modo Adaptativo Restaurado</string>
+<string name="paradox_vip_summary">Conoce nuestros planes VIP.</string>
+<string name="paradox_vip_title">Sitio VIP Paradox Hub</string>
+<string name="paradox_wifi_ping_summary">Bloquea el escaneo de redes en segundo plano para evitar tirones de lag. [Aviso: Reduce la precisión de ubicación del GPS en interiores].</string>
+<string name="paradox_wifi_ping_title">Estabilizador de Ping Wi-Fi</string>
+</resources>

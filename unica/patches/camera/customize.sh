@@ -82,6 +82,32 @@ if [[ "$TARGET_OS_SINGLE_SYSTEM_IMAGE" == "essi" ]]; then
     fi
 fi
 
+# Fix device model number in photo/video metadata
+while IFS= read -r f; do
+    HEX_PATCH "$f" "726f2e70726f647563742e6d6f64656c00" "726f2e626f6f742e656d2e6d6f64656c00"
+done < <(grep -r -w -l "ro.product.model" "$WORK_DIR/vendor" | grep "camera")
+if [ -f "$WORK_DIR/system/system/lib/libstagefright.so" ]; then
+    HEX_PATCH "$WORK_DIR/system/system/lib/libstagefright.so" \
+        "726f2e70726f647563742e6d6f64656c00" "726f2e626f6f742e656d2e6d6f64656c00"
+else
+    # Android 16 source firmware (for example S926B) is arm64-only and does
+    # not ship the legacy 32-bit stagefright library.
+    LOG "- Skipping 32-bit libstagefright model patch (library is absent)"
+fi
+if [ -f "$WORK_DIR/system/system/lib64/libstagefright.so" ]; then
+    HEX_PATCH "$WORK_DIR/system/system/lib64/libstagefright.so" \
+        "726f2e70726f647563742e6d6f64656c00" "726f2e626f6f742e656d2e6d6f64656c00"
+    # Fix the ARM64 __fread_chk buffer overflow in
+    # ACodec::reconfigEncoder4OtherApps.
+    # Source platform's ACodec reads 512 bytes into a 255-byte buffer via __fread_chk,
+    # causing SIGABRT in mediaserver when third-party apps (WhatsApp/Telegram) use
+    # the video encoder. Patch the read size from 0x200 to 0xff to match the buffer.
+    HEX_PATCH "$WORK_DIR/system/system/lib64/libstagefright.so" \
+        "02408052e30314aae41f8052" "e21f8052e30314aae41f8052"
+else
+    LOG "- Skipping 64-bit libstagefright model patch (library is absent)"
+fi
+
 # Fix portrait mode
 
         SET_PROP "system" "ro.build.flavor" "$(GET_PROP "$FW_DIR/$TARGET_FIRMWARE_PATH/system/system/build.prop" "ro.build.flavor")"
@@ -134,4 +160,3 @@ if $SOURCE_HAS_MASS_CAMERA_APP; then
 else
     LOG "- SOURCE_HAS_MASS_CAMERA_APP is not set. Ignoring."
 fi
-

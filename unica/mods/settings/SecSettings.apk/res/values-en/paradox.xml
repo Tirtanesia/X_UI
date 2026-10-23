@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="paradox_center_bat_capacity">Real Capacity</string>
+<string name="paradox_center_bat_cycles">Charge Cycles</string>
+<string name="paradox_center_bat_health">Real Health</string>
+<string name="paradox_center_bat_temp">Battery Temperature</string>
+<string name="paradox_center_category_battery">Battery</string>
+<string name="paradox_center_category_realtime">Real-time System</string>
+<string name="paradox_center_cpu_temp">CPU Temperature</string>
+<string name="paradox_center_gpu_oc">GPU Overclock</string>
+<string name="paradox_center_gpu_oc_summary">Unlocks maximum frequencies</string>
+<string name="paradox_center_ram">RAM Usage</string>
+<string name="paradox_center_title">The Diving Core</string>
+<string name="paradox_core_applied">Core Mode applied: %1$s</string>
+<string name="paradox_core_banner_mode">Core Mode: %1$s</string>
+<string name="paradox_core_desc_title">Mode behavior</string>
+<string name="paradox_core_mode_battery">Paradox Battery</string>
+<string name="paradox_core_mode_battery_desc">Locked 48 Hz, power saving, AOD off, short screen timeout.</string>
+<string name="paradox_core_mode_gaming">Paradox Gaming</string>
+<string name="paradox_core_mode_gaming_desc">Locked 120 Hz, touch sensitivity, enhanced processing, low latency network behavior.</string>
+<string name="paradox_core_mode_smooth">Paradox Smooth</string>
+<string name="paradox_core_mode_smooth_desc">Adaptive 48-120 Hz, smooth animations, balanced CPU response.</string>
+<string name="paradox_core_mode_stock">Stock+</string>
+<string name="paradox_core_mode_stock_desc">Restore the settings saved before Core Modes changed them.</string>
+<string name="paradox_core_mode_summary">Current: %1$s</string>
+<string name="paradox_core_mode_title">Active mode</string>
+<string name="paradox_core_modes_sum">Switch the ROM experience with one tap.</string>
+<string name="paradox_core_modes_title">Core Modes</string>
+<string name="paradox_core_no_backup">No Core Mode backup found</string>
+<string name="paradox_core_restore_sum">Returns to the values saved before the first Core Mode was applied.</string>
+<string name="paradox_core_restore_title">Restore previous settings</string>
+<string name="paradox_core_restored">Previous Core settings restored</string>
+</resources>

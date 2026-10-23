@@ -17,11 +17,19 @@ cp -f "$MODPATH/framework.jar/KnoxPatchHooks.smali" \
 # Context.getPackageName(), which already exists in classes.dex, so no new
 # method_id is introduced: framework.jar's classes.dex is exactly full at the
 # 65536-entry dex limit and cannot take any extra method reference.
+# Use a scratch local (v0) for the package name. Writing it back into p1
+# would clobber the Context register that later hooks injected into this same
+# method (e.g. PlayIntegrityHooks.setProps) still read, which the ART verifier
+# rejects with a VerifyError and crashes every application start.
+SMALI_PATCH "system" "system/framework/framework.jar" \
+    "smali/android/app/Instrumentation.smali" "replace" \
+    'newApplication(Ljava/lang/Class;Landroid/content/Context;)Landroid/app/Application;' \
+    '.locals 0' '.locals 1'
 SMALI_PATCH "system" "system/framework/framework.jar" \
     "smali/android/app/Instrumentation.smali" "replace" \
     'newApplication(Ljava/lang/Class;Landroid/content/Context;)Landroid/app/Application;' \
     'return-object p0' \
-    '    invoke-virtual {p1}, Landroid/content/Context;->getPackageName()Ljava/lang/String;\n\n    move-result-object p1\n\n    sput-object p1, Lio/mesalabs/unica/KnoxPatchHooks;->sPackageName:Ljava/lang/String;\n\n    return-object p0'
+    '    invoke-virtual {p1}, Landroid/content/Context;->getPackageName()Ljava/lang/String;\n\n    move-result-object v0\n\n    sput-object v0, Lio/mesalabs/unica/KnoxPatchHooks;->sPackageName:Ljava/lang/String;\n\n    return-object p0'
 # This overload already calls Context.getPackageName() into v0 to feed
 # Instrumentation.getFactory(), so we store v0 from that existing instruction
 # instead of guessing which parameter holds the Context: the descriptor lists

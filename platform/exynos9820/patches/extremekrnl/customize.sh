@@ -1,12 +1,12 @@
 # [
-EXTREMEKRNL_REPO="https://github.com/ExtremeXT/M62-backport/"
+EXTREMEKRNL_REPO="https://github.com/Android-Artisan/android_kernel_samsung_exynos9820"
 
 BUILD_KERNEL()
 {
     local PARENT=$(pwd)
     cd $KERNEL_TMP_DIR
 
-    EVAL "./build.sh -m ${TARGET_CODENAME} -k y -r n"
+    ./build.sh -m ${TARGET_CODENAME} -k y -r n
 
     cd $PARENT
 }

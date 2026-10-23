@@ -38,16 +38,38 @@ wait $(jobs -p) || exit 1
 
 LOG_STEP_OUT
 
-LOG_STEP_IN
-LOG "- Patching Video SVC Check"
-# Early jump after the log and abort functions when configureSVC fails
-# b LAB_001dd448 -> b LAB_001ddc24
-HEX_PATCH "$WORK_DIR/system/system/lib64/libstagefright.so" "da4a0594e0031a2a22feff17" "da4a0594e0031a2a19000014"
+LOG_STEP_IN "- Removing HDR10+ check"
+if [[ "$SOURCE_PLATFORM_SDK_VERSION" -lt 36 ]]; then
+    ADD_TO_WORK_DIR "pa3qzcx" "system" "system/lib64/libstagefright.so" 0 0 644 "u:object_r:system_lib_file:s0"
+    HEX_PATCH "$WORK_DIR/system/system/lib64/libstagefright.so" \
+        "010140f97069059420510034" \
+        "010140f91f2003d51f2003d5"
+else
+    # Android 16 changed the Camera::connect ABI. Replacing this library with
+    # the older pa3qzcx blob makes zygote, cameraserver and the media services
+    # fail at link time, so retain the source firmware's matched media stack.
+    LOG "Skipping legacy HDR10+ blob on Android 16"
+    ADD_TO_WORK_DIR "$SOURCE_FIRMWARE" "system" \
+        "system/lib64/libstagefright.so" 0 0 644 \
+        "u:object_r:system_lib_file:s0"
 
-LOG "- Patching HDR10+ Check"
-# Skip HDR10+ Recording ASSERT
-# cbz this,LAB_001dde38 -> nop
-HEX_PATCH "$WORK_DIR/system/system/lib64/libstagefright.so" "010140f90a4d0594604d0034" "010140f90a4d05941f2003d5"
+    # The Android 16 media stack retained Samsung's background recording API,
+    # but MediaCodecSource::suspendRecording(bool) is now a no-op. Exynos 990
+    # Super Slow Motion still creates its persistent encoder input suspended
+    # and relies on that method to resume it, otherwise the recording finishes
+    # with zero encoded frames. Start that input active instead.
+    HEX_PATCH "$WORK_DIR/system/system/lib64/libstagefright.so" \
+        "810240f97ef9019421f5ffd021481091e00314aa2200805225fd0194" \
+        "810240f97ef9019421f5ffd021481091e00314aa0200805225fd0194"
+
+    # Android 16 configures temporal SVC for high-frame-rate recordings. The
+    # legacy Exynos HEVC OMX encoder does not implement the queried extension
+    # and returns ERROR_UNSUPPORTED. Keep the encoder setup going without SVC;
+    # AVC encoders that support the extension continue through the same path.
+    HEX_PATCH "$WORK_DIR/system/system/lib64/libstagefright.so" \
+        "e10740b9e22340b9e00313aa44aa059420020034fa03002a" \
+        "e10740b9e22340b9e00313aa44aa059411000014fa03002a"
+fi
 LOG_STEP_OUT
 
 BLOBS_LIST="

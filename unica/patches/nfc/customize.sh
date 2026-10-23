@@ -23,10 +23,30 @@ fi
 
 DECODE_APK "system" "system/priv-app/SecSettings/SecSettings.apk"
 
-FTP="
-system/priv-app/SecSettings/SecSettings.apk/smali_classes5/com/samsung/android/settings/nfc/NfcAntennaGuideDialog.smali
-system/priv-app/SecSettings/SecSettings.apk/smali_classes5/com/samsung/android/settings/nfc/NfcSettings.smali
-"
-for f in $FTP; do
-    sed -i "s/\"4\"/\"1\"/g" "$APKTOOL_DIR/$f"
-done
+# Newer donor builds compile SEC_PRODUCT_FEATURE_NFC_CONFIG_ANTENNA_POSITION
+# into SecSettings as a literal ("27" on this donor). The NFC settings screen
+# and the antenna guide dialog throw an IllegalArgumentException whenever that
+# compiled value differs from ro.vendor.nfc.info.antpos, which is what made
+# Settings crash on the target. Realign the compiled value with the target
+# vendor property instead of hardcoding it.
+NFC_ANTPOS="$(GET_PROP "vendor" "ro.vendor.nfc.info.antpos")"
+
+if [ -z "$NFC_ANTPOS" ]; then
+    LOG "- Target NFC antenna position is not declared; skipping antenna guide alignment"
+else
+    LOG_STEP_IN "- Matching NFC antenna guide to target position $NFC_ANTPOS"
+
+    SMALI_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
+        "smali_classes5/com/samsung/android/settings/nfc/NfcAntennaGuideDialog.smali" \
+        "replace" "onCreate(Landroid/os/Bundle;)V" \
+        "27" "$NFC_ANTPOS"
+
+    SMALI_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
+        "smali_classes5/com/samsung/android/settings/nfc/NfcSettings.smali" \
+        "replace" "populateViewForOrientation(Lcom/android/settingslib/widget/LayoutPreference;)V" \
+        "27" "$NFC_ANTPOS"
+
+    LOG_STEP_OUT
+fi
+
+unset NFC_ANTPOS

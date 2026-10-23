@@ -90,7 +90,16 @@ SET_PROP "product" "bluetooth.profile.sap.server.enabled" "true"
 SET_PROP "product" "bluetooth.profile.ccp.server.enabled" "false"
 SET_PROP "product" "bluetooth.profile.vcp.controller.enabled" "false"
 
-if [[ "$TARGET_CODENAME" == "r8s" ]]; then
+if [[ "$SOURCE_API_LEVEL" -ge 36 ]]; then
+    # Android 16 services.jar uses Bluetooth framework APIs that are not
+    # present in the older b0s/r11s prebuilts (for example
+    # ScanSettings.Builder#setRssiThreshold).  Keep the source firmware APEX
+    # so framework-bluetooth.jar and services.jar remain on the same ABI.
+    # Mixing them also makes PackageManager resolve the donor Bluetooth app
+    # for "android.bluetooth.IAdapter", which it does not declare, crashing
+    # system_server at boot.
+    LOG "  - Keeping source Bluetooth APEX for framework ABI compatibility"
+elif [[ "$TARGET_CODENAME" == "r8s" ]]; then
     ADD_TO_WORK_DIR "r11sxxx" "system" "system/apex/com.android.btservices.apex" 0 0 644 "u:object_r:system_file:s0"
 else
     ADD_TO_WORK_DIR "b0sxxx" "system" "system/apex/com.android.btservices.apex" 0 0 644 "u:object_r:system_file:s0"

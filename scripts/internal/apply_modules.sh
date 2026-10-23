@@ -134,8 +134,10 @@ elif [ ! -d "$1" ]; then
     exit 1
 fi
 
+# </dev/null keeps apktool's "replace ...?" prompts from eating the module
+# list on stdin: DECODE_APK would otherwise consume the remaining paths.
 while IFS= read -r f; do
-    APPLY_MODULE "$f"
+    APPLY_MODULE "$f" < /dev/null
 done < <(find "$1" -mindepth 1 -maxdepth 1 -type d | sort)
 
 exit 0

@@ -1,0 +1,21 @@
+From 0000000000000000000000000000000000000005 Mon Sep 17 00:00:00 2001
+From: ParadoxUI <noreply@localhost>
+Date: Sat, 3 Oct 2026 16:30:00 +0000
+Subject: [PATCH] Move ApplicationPackageManager to a secondary DEX
+
+The stock framework.jar classes.dex method table is already at the hard
+65536 entry limit, so the Google Photos hook introduced by
+0001-Allow-unlimited-storage-for-Google-Photos adds new method references
+that overflow it and abort the smali build. Relocate the patched class to
+classes7.dex, which has plenty of free method slots.
+
+---
+ smali/android/app/ApplicationPackageManager.smali | 0
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+
+diff --git a/smali/android/app/ApplicationPackageManager.smali b/smali_classes7/android/app/ApplicationPackageManager.smali
+similarity index 100%
+rename from smali/android/app/ApplicationPackageManager.smali
+rename to smali_classes7/android/app/ApplicationPackageManager.smali
+-- 
+2.51.1

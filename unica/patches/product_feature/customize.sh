@@ -119,7 +119,11 @@ fi
 
 if [[ "$TARGET_DISPLAY_CUTOUT_TYPE" == "right" ]]; then
     LOG_STEP_IN "- Applying right cutout patch"
-    APPLY_PATCH "system_ext" "priv-app/SystemUI/SystemUI.apk" "$SRC_DIR/unica/patches/product_feature/cutout/SystemUI.apk/0001-Add-right-cutout-support.patch"
+    if [[ "$TARGET_CODENAME" =~ ^beyond ]]; then
+        LOG "  - Skipping right cutout patch for $TARGET_CODENAME (context mismatch)"
+    else
+        APPLY_PATCH "system_ext" "priv-app/SystemUI/SystemUI.apk" "$SRC_DIR/unica/patches/product_feature/cutout/SystemUI.apk/0001-Add-right-cutout-support.patch"
+    fi
     LOG_STEP_OUT
 fi
 

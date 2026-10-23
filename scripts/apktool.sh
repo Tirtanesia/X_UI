@@ -54,9 +54,18 @@ BUILD()
     local FILE_NAME
     FILE_NAME="$(basename "$INPUT_FILE")"
 
-    LOG "- Zipaligning ${INPUT_FILE//$WORK_DIR/}"
-    EVAL "zipalign -p 4 \"$OUTPUT_PATH/dist/$FILE_NAME\" \"$OUTPUT_PATH/dist/temp\"" || exit 1
-    mv -f "$OUTPUT_PATH/dist/temp" "$OUTPUT_PATH/dist/$FILE_NAME"
+    if [[ "$INPUT_FILE" == *".apk" ]]; then
+        local CERT_PREFIX="aosp"
+        $ROM_IS_OFFICIAL && CERT_PREFIX="artisanrom"
+
+        LOG "- Signing ${INPUT_FILE//$WORK_DIR/}"
+        EVAL "signapk \"$SRC_DIR/security/${CERT_PREFIX}_platform.x509.pem\" \"$SRC_DIR/security/${CERT_PREFIX}_platform.pk8\" \"$OUTPUT_PATH/dist/$FILE_NAME\" \"$OUTPUT_PATH/dist/temp.apk\"" || exit 1
+        mv -f "$OUTPUT_PATH/dist/temp.apk" "$OUTPUT_PATH/dist/$FILE_NAME"
+    else
+        LOG "- Zipaligning ${INPUT_FILE//$WORK_DIR/}"
+        EVAL "zipalign -p 4 \"$OUTPUT_PATH/dist/$FILE_NAME\" \"$OUTPUT_PATH/dist/temp\"" || exit 1
+        mv -f "$OUTPUT_PATH/dist/temp" "$OUTPUT_PATH/dist/$FILE_NAME"
+    fi
 
     mkdir -p "$(dirname "$INPUT_FILE")"
     mv -f "$OUTPUT_PATH/dist/$FILE_NAME" "$INPUT_FILE"
@@ -93,7 +102,17 @@ DECODE()
     fi
 
     LOG "- Decoding ${INPUT_FILE//$WORK_DIR/}"
-    [[ "$INPUT_FILE" != *rro_*.apk ]] && ARGS="-r"
+    # Decode with resources (no -r) for APKs whose mods ship res/ payloads.
+    # SecSettings/SecSetupWizard mods inject res XML and require aapt2 to
+    # rebuild a complete resources.arsc; decoding them with -r drops every
+    # original resource and yields a broken APK.
+    ARGS="-r"
+    if [[ "$INPUT_FILE" == *rro_*.apk ]] || \
+       [[ "$INPUT_FILE" == *SecSettings.apk ]] || \
+       [[ "$INPUT_FILE" == *SecSetupWizard_Global.apk ]] || \
+       [[ "$INPUT_FILE" == *app/DAAgent/DAAgent.apk ]]; then
+        ARGS=""
+    fi
 
     # Decode APK with --no-debug-info, which will disassemble DEX file with the following flags:
     # - Disabled synthetic accessors comments
