@@ -1,4 +1,4 @@
-name: Build ParadoxUI
+name: Build Arktik
 
 on:
   workflow_dispatch:
@@ -70,6 +70,11 @@ jobs:
         run: |
           source ./buildenv.sh ${{ matrix.target }}
           ./scripts/build_dependencies.sh
+
+      - name: Install Missing Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y gold-standard golang pcre2-utils
 
       - name: Download source firmware
         run: |
