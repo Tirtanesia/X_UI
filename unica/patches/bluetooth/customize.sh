@@ -242,23 +242,19 @@ fi
 # SEC_PRODUCT_FEATURE_BLUETOOTH_SUPPORT_XLNA_CONTROL
 if $SOURCE_BLUETOOTH_SUPPORT_XLNA_CONTROL; then
     if ! $TARGET_BLUETOOTH_SUPPORT_XLNA_CONTROL; then
-        # Skip patch
-        :
-        #DECODE_APK_IN_APEX "$BT_APK"
-        #LOG "- Applying \"Disable SUPPORT_XLNA_CONTROL support\" to apex_payload/$BT_APK_REL"
-        # APPLY_PATCH "system" "$BT_APK_WORK_PATH" \
-        #    "$MODPATH/xlna/Bluetooth.apk/0001-Disable-SUPPORT_XLNA_CONTROL-support.patch" \
-        #    > /dev/null
+        DECODE_APK_IN_APEX "$BT_APK"
+        LOG "- Applying \"Disable SUPPORT_XLNA_CONTROL support\" to apex_payload/$BT_APK_REL"
+        APPLY_PATCH "system" "$BT_APK_WORK_PATH" \
+            "$MODPATH/xlna/Bluetooth.apk/0001-Disable-SUPPORT_XLNA_CONTROL-support.patch" \
+            > /dev/null
     fi
 else
     if $TARGET_BLUETOOTH_SUPPORT_XLNA_CONTROL; then
-        # Skip patch
-        :
-        #DECODE_APK_IN_APEX "$BT_APK"
-        #LOG "- Applying \"Enable SUPPORT_XLNA_CONTROL support\" to apex_payload/$BT_APK_REL"
-        # APPLY_PATCH "system" "$BT_APK_WORK_PATH" \
-        #    "$MODPATH/xlna/Bluetooth.apk/0001-Enable-SUPPORT_XLNA_CONTROL-support.patch" \
-        #    > /dev/null
+        DECODE_APK_IN_APEX "$BT_APK"
+        LOG "- Applying \"Enable SUPPORT_XLNA_CONTROL support\" to apex_payload/$BT_APK_REL"
+        APPLY_PATCH "system" "$BT_APK_WORK_PATH" \
+            "$MODPATH/xlna/Bluetooth.apk/0001-Enable-SUPPORT_XLNA_CONTROL-support.patch" \
+            > /dev/null
     fi
 fi
 
