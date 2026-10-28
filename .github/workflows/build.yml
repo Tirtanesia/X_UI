@@ -50,7 +50,7 @@ jobs:
             libgtest-dev libprotobuf-dev libunwind-dev libpcre2-dev \
             libzstd-dev linux-modules-extra-$(uname -r) lld protobuf-compiler webp \
             build-essential g++-aarch64-linux-gnu gcc-aarch64-linux-gnu \
-            python-is-python3 python3 wget curl
+            python-is-python3 python3 wget curl golang-go pcre2-utils
             
           wget https://raw.githubusercontent.com/kdrag0n/kramflash/refs/heads/master/mkbootimg.py && sudo ln -sf $(pwd)/mkbootimg.py /usr/bin/mkbootimg && chmod +x /usr/bin/mkbootimg
 
