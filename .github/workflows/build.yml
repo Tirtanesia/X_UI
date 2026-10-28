@@ -100,7 +100,7 @@ jobs:
       - name: Upload ROM Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ParadoxUI-${{ matrix.target }}
+          name: Arktik-${{ matrix.target }}
           path: |
             out/*.tar*
             out/*.zip*
