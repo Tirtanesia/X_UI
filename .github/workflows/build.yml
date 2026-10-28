@@ -44,17 +44,25 @@ jobs:
 
       - name: Set up build environment
         run: |
-         sudo apt update
-         # Install 1
-         DEBIAN_FRONTEND=noninteractive sudo apt install -yq linux-modules-extra-$(uname -r) || true
-         
-         # Install 2
-         DEBIAN_FRONTEND=noninteractive sudo apt install -yq \
-            attr ccache clang ffmpeg libbrotli-dev libbz2-dev \
-            libgtest-dev libprotobuf-dev libunwind-dev libpcre2-dev \
-            libzstd-dev linux-modules-extra-$(uname -r) lld protobuf-compiler webp \
-            build-essential g++-aarch64-linux-gnu gcc-aarch64-linux-gnu \
-            python-is-python3 python3 wget curl golang-go pcre2-utils
+          set -euxo pipefail
+
+          sudo apt-get update
+
+          KERNEL_VERSION="$(uname -r)"
+          KERNEL_MOD_EXTRA="linux-modules-extra-${KERNEL_VERSION}"
+
+          if apt-cache show "$KERNEL_MOD_EXTRA" >/dev/null 2>&1; then
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq "$KERNEL_MOD_EXTRA"
+          else
+          echo "::warning::Package $KERNEL_MOD_EXTRA is not available on this runner; skipping it."
+          fi
+
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq \
+          attr ccache clang ffmpeg libbrotli-dev libbz2-dev \
+          libgtest-dev libprotobuf-dev libunwind-dev libpcre2-dev \
+          libzstd-dev lld protobuf-compiler webp \
+          build-essential g++-aarch64-linux-gnu gcc-aarch64-linux-gnu \
+          python-is-python3 python3 wget curl golang-go pcre2-utils
             
           wget https://raw.githubusercontent.com/kdrag0n/kramflash/refs/heads/master/mkbootimg.py && sudo ln -sf $(pwd)/mkbootimg.py /usr/bin/mkbootimg && chmod +x /usr/bin/mkbootimg
 
