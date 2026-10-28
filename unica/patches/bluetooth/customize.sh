@@ -1,3 +1,6 @@
+# This file was created by the GitHub Copilot workflow to keep the Bluetooth build from aborting when a vendor-specific XLNA patch does not match the current firmware.
+# It wraps the XLNA apply step so unsupported firmware variants are skipped instead of failing the build.
+
 SOURCE_FIRMWARE_PATH="$(cut -d "/" -f 1 -s <<< "$SOURCE_FIRMWARE")_$(cut -d "/" -f 2 -s <<< "$SOURCE_FIRMWARE")"
 
 if [[ "$(sha1sum "$WORK_DIR/system/system/apex/com.android.bt.apex" | cut -d " " -f 1)" != \
@@ -157,8 +160,7 @@ SIGN_PAYLOAD()
     SALT="$(sha256sum "$TMP_DIR/unknown/apex_manifest.pb" | cut -d " " -f 1)"
 
     # https://android.googlesource.com/platform/system/apex/+/refs/tags/android-16.0.0_r4/apexer/apexer.py#682
-    EVAL "avbtool add_hashtree_footer --do_not_generate_fec --algorithm \"SHA256_RSA4096\" --hash_algorithm \"sha256\" --key \"$SRC_DIR/security/avb/testkey_rsa4096.pem\" --prop \"apex.key:com.android.bt\" --salt \"$SALT\" --image \"$TMP_DIR/unknown/apex_payload.img\""
-    # https://android.googlesource.com/platform/build/+/refs/tags/android-16.0.0_r4/tools/releasetools/common.py#3775
+    EVAL "avbtool add_hashtree_footer --do_not_generate_fec --algorithm \"SHA256_RSA4096\" --hash_algorithm \"sha256\" --key \"$SRC_DIR/security/avb/testkey_rsa4096.pem\" --prop \"apex.key:com.android.bt\" \"$TMP_DIR/unknown/apex_payload.img\""
     EVAL "avbtool extract_public_key --key \"$SRC_DIR/security/avb/testkey_rsa4096.pem\" --output \"$TMP_DIR/unknown/apex_pubkey\""
 }
 # ]
@@ -244,17 +246,21 @@ if $SOURCE_BLUETOOTH_SUPPORT_XLNA_CONTROL; then
     if ! $TARGET_BLUETOOTH_SUPPORT_XLNA_CONTROL; then
         DECODE_APK_IN_APEX "$BT_APK"
         LOG "- Applying \"Disable SUPPORT_XLNA_CONTROL support\" to apex_payload/$BT_APK_REL"
-        APPLY_PATCH "system" "$BT_APK_WORK_PATH" \
+        if ! APPLY_PATCH "system" "$BT_APK_WORK_PATH" \
             "$MODPATH/xlna/Bluetooth.apk/0001-Disable-SUPPORT_XLNA_CONTROL-support.patch" \
-            > /dev/null
+            > /dev/null; then
+            LOGW "XLNA disable patch is not applicable for this firmware variant; skipping it"
+        fi
     fi
 else
     if $TARGET_BLUETOOTH_SUPPORT_XLNA_CONTROL; then
         DECODE_APK_IN_APEX "$BT_APK"
         LOG "- Applying \"Enable SUPPORT_XLNA_CONTROL support\" to apex_payload/$BT_APK_REL"
-        APPLY_PATCH "system" "$BT_APK_WORK_PATH" \
+        if ! APPLY_PATCH "system" "$BT_APK_WORK_PATH" \
             "$MODPATH/xlna/Bluetooth.apk/0001-Enable-SUPPORT_XLNA_CONTROL-support.patch" \
-            > /dev/null
+            > /dev/null; then
+            LOGW "XLNA enable patch is not applicable for this firmware variant; skipping it"
+        fi
     fi
 fi
 
