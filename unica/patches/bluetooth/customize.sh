@@ -160,8 +160,7 @@ SIGN_PAYLOAD()
     SALT="$(sha256sum "$TMP_DIR/unknown/apex_manifest.pb" | cut -d " " -f 1)"
 
     # https://android.googlesource.com/platform/system/apex/+/refs/tags/android-16.0.0_r4/apexer/apexer.py#682
-    EVAL "avbtool add_hashtree_footer --do_not_generate_fec --algorithm \"SHA256_RSA4096\" --hash_algorithm \"sha256\" --key \"$SRC_DIR/security/avb/testkey_rsa4096.pem\" --prop \"apex.key:com.android.bt\" \"$TMP_DIR/unknown/apex_payload.img\""
-    EVAL "avbtool extract_public_key --key \"$SRC_DIR/security/avb/testkey_rsa4096.pem\" --output \"$TMP_DIR/unknown/apex_pubkey\""
+    EVAL "avbtool add_hashtree_footer --do_not_generate_fec --algorithm \"SHA256_RSA4096\" --hash_algorithm \"sha256\" --key \"$SRC_DIR/security/avb/testkey_rsa4096.pem\" --prop \"apex.key:com.andt\" --salt \"$SALT\" \"$1\""
 }
 # ]
 
@@ -265,27 +264,36 @@ else
 fi
 
 # Disable VaultKeeper support
-# Before: [tbnz w8, #0, #0xXXXXXX]
-# After: [b #0xXXXXXX]
-VK_FROM="2897773948050037"
-VK_TO="289777392a000014"
-
-# Android 16 BP4A moved the flag inside the Bluetooth native context, which
-# changed the preceding LDRB encoding.  The TBNZ and its destination retain
-# the same purpose, so patch the matching firmware-specific instruction pair.
-if xxd -p -c 0 "$TMP_DIR/unknown/apex_payload/lib64/libbluetooth_jni.so" | \
-        grep -q "8876743948050037"; then
-    VK_FROM="8876743948050037"
-    VK_TO="887674392a000014"
-elif xxd -p -c 0 "$TMP_DIR/unknown/apex_payload/lib64/libbluetooth_jni.so" | \
-        grep -q "28f7773948050037"; then
-    # August firmware variant used by current upstream donors.
-    VK_FROM="28f7773948050037"
-    VK_TO="28f777392a000014"
+VK_LIB="$TMP_DIR/unknown/apex_payload/lib64/libbluetooth_jni.so"
+if [ ! -f "$VK_LIB" ]; then
+    LOGW "VaultKeeper patch skipped: libbluetooth_jni.so not found"
+    unset VK_LIB
+    return 0
 fi
 
-HEX_PATCH "$TMP_DIR/unknown/apex_payload/lib64/libbluetooth_jni.so" \
-    "$VK_FROM" "$VK_TO" > /dev/null
+VK_FROM=""
+VK_TO=""
+BIN_HEX="$(xxd -p -c 0 "$VK_LIB")"
+
+for pair in \
+    "8876743948050037 887674392a000014" \
+    "28f7773948050037 28f777392a000014" \
+    "2897773948050037 289777392a000014"; do
+    set -- $pair
+    if echo "$BIN_HEX" | grep -q "$1"; then
+        VK_FROM="$1"
+        VK_TO="$2"
+        break
+    fi
+done
+
+if [ -z "$VK_FROM" ]; then
+    LOGW "VaultKeeper instruction pattern not found for this firmware variant; skipping patch"
+    unset VK_FROM VK_TO VK_LIB BIN_HEX
+    return 0
+fi
+
+HEX_PATCH "$VK_LIB" "$VK_FROM" "$VK_TO" > /dev/null
 
 BUILD_APK_IN_APEX "$BT_APK"
 BUILD_APK_IN_APEX "$TMP_DIR/unknown/apex_payload/javalib/framework-bluetooth.jar"
@@ -296,7 +304,7 @@ SIGN_APEX "$WORK_DIR/system/system/apex/com.android.bt.apex"
 
 rm -rf "$TMP_DIR"
 
-unset SOURCE_FIRMWARE_PATH BT_APK BT_APK_REL BT_APK_WORK_PATH VK_FROM VK_TO
+unset SOURCE_FIRMWARE_PATH BT_APK BT_APK_REL BT_APK_WORK_PATH VK_FROM VK_TO VK_LIB BIN_HEX
 unset -f BUILD_APK_IN_APEX BUILD_APEX BUILD_PAYLOAD \
     DECODE_APEX DECODE_APK_IN_APEX EXTRACT_PAYLOAD \
     LOG_MISSING_PATCHES SIGN_APEX SIGN_PAYLOAD
