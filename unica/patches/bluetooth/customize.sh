@@ -3,6 +3,16 @@
 
 SOURCE_FIRMWARE_PATH="$(cut -d "/" -f 1 -s <<< "$SOURCE_FIRMWARE")_$(cut -d "/" -f 2 -s <<< "$SOURCE_FIRMWARE")"
 
+# Detect obvious model/firmware mismatches before any Bluetooth patching begins.
+# c1s (Galaxy Note 20) must not use S26+/S947B donor firmware or BP4A payloads.
+# This is not a valid ROM pairing, so we skip the unsupported Bluetooth patch steps
+# with a clear warning instead of crashing the build.
+if [[ "${WORK_DIR:-}" == *"/c1s/"* ]] && \
+   [[ "${SOURCE_FIRMWARE:-}" == *"S947B"* || "${SOURCE_FIRMWARE:-}" == *"S26"* || "${SOURCE_FIRMWARE:-}" == *"BP4A"* ]]; then
+    LOGW "Firmware mismatch detected: target c1s but source firmware is ${SOURCE_FIRMWARE}. This is not a compatible Note 20 donor. Skipping Bluetooth native patching."
+    return 0
+fi
+
 if [[ "$(sha1sum "$WORK_DIR/system/system/apex/com.android.bt.apex" | cut -d " " -f 1)" != \
         "$(sha1sum "$FW_DIR/$SOURCE_FIRMWARE_PATH/system/system/apex/com.android.bt.apex" | cut -d " " -f 1)" ]]; then
     LOG "\033[0;33m! Nothing to do\033[0m"
@@ -160,7 +170,7 @@ SIGN_PAYLOAD()
     SALT="$(sha256sum "$TMP_DIR/unknown/apex_manifest.pb" | cut -d " " -f 1)"
 
     # https://android.googlesource.com/platform/system/apex/+/refs/tags/android-16.0.0_r4/apexer/apexer.py#682
-    EVAL "avbtool add_hashtree_footer --do_not_generate_fec --algorithm \"SHA256_RSA4096\" --hash_algorithm \"sha256\" --key \"$SRC_DIR/security/avb/testkey_rsa4096.pem\" --prop \"apex.key:com.andt\" --salt \"$SALT\" \"$1\""
+    EVAL "avbtool add_hashtree_footer --do_not_generate_fec --algorithm \"SHA256_RSA4096\" --hash_algorithm \"sha256\" --key \"$SRC_DIR/security/avb/testkey_rsa4096.pem\" --prop \"apex.key:com.android.bt\" --salt \"$SALT\" \"$1\""
 }
 # ]
 
