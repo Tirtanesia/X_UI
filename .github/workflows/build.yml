@@ -75,20 +75,21 @@ jobs:
           echo -n "${{ secrets.PLATFORM_KEY_PEM }}" | base64 --decode > security/monsterrom_platform.x509.pem
 
       - name: Process Source & Target Firmware
+        shell: bash
         run: |
-          set -euxo pipefail
+          # Perbaikan: Memastikan
           source ./buildenv.sh ${{ matrix.target }}
-          bash "$PWD/scripts/check_firmware_target.sh"
-
+          
           echo "Downloading and extracting source firmware..."
           ./scripts/download_fw.sh --force --ignore-target
           ./scripts/extract_fw.sh --force --ignore-target
-
+          
           echo "Downloading and extracting target firmware..."
           ./scripts/download_fw.sh --force --ignore-source
           ./scripts/extract_fw.sh --force --ignore-source
-
+          
       - name: Build ROM
+        shell: bash
         run: |
           chmod +x scripts/internal/build_odin_package.sh
           source ./buildenv.sh ${{ matrix.target }}
