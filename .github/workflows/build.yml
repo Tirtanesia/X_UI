@@ -88,7 +88,7 @@ jobs:
           ./scripts/download_fw.sh --force --ignore-source
           ./scripts/extract_fw.sh --force --ignore-source
           
-      - name: Build ROM
+      - name: Build ROMLotus
         shell: bash
         run: |
           chmod +x scripts/internal/build_odin_package.sh
@@ -102,3 +102,20 @@ jobs:
           path: |
             out/*.tar*
             out/*.zip*
+
+      - name: Upload ROMLotus
+        env:
+          PIXELDRAIN_API_KEY: ${{ secrets.PIXELDRAIN_API_KEY }}
+        run: |
+          # Mencari file ZIP di dalam folder out/ hasil build
+          ROM_FILE=$(ls out/*.zip | head -n 1)
+          
+          if [ -z "$ROM_FILE" ]; then
+            echo "Error: File ZIP tidak ditemukan di folder out/"
+            exit 1
+          fi
+          
+          echo "Mengunggah $ROM_FILE ke akun Pixeldrain Anda..."
+          
+          # Menggunakan API Key untuk mengunggah langsung ke akun Anda
+          curl -X POST -u ":$PIXELDRAIN_API_KEY" -F "file=@$ROM_FILE" https://pixeldrain.com/api/file
