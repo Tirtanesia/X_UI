@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-<string name="paradox_cat_hub">Paradox Hub</string>
-<string name="paradox_cat_tweaks">Paradox Tweaks</string>
+<string name="paradox_cat_hub">Lotus</string>
+<string name="paradox_cat_tweaks">Lotus Tweaks</string>
 <string name="paradox_center_sum">Advanced control panel of Paradox Hub</string>
 <string name="paradox_active_in_use">In use:</string>
 <string name="paradox_active_monitor">Active Memory</string>
@@ -9,10 +9,10 @@
 <string name="paradox_anti_tracking_sum">Closes telemetry ports, blocking the sending of diagnostics to Samsung. Saves CPU and data.</string>
 <string name="paradox_anti_tracking_summary">Closes telemetry ports, blocking the sending of diagnostics and usage metrics to Samsung servers. Saves CPU and data.</string>
 <string name="paradox_anti_tracking_title">Absolute Privacy Mode</string>
-<string name="paradox_app_manager">Paradox App Manager</string>
+<string name="paradox_app_manager">Lotus App Manager</string>
 <string name="paradox_app_manager_sum">Freeze or reactivate any system application without restrictions.</string>
 <string name="paradox_app_manager_summary">Freeze or reactivate any system application without restrictions.</string>
-<string name="paradox_app_manager_title">Paradox App Manager</string>
+<string name="paradox_app_manager_title">Lotus App Manager</string>
 <string name="paradox_audio_dac">Bluetooth Audio Unlock</string>
 <string name="paradox_audio_dac_sum">Unlinks system volume from headset volume to reach the DAC true maximum power. [Warning: Requires reconnecting Bluetooth].</string>
 <string name="paradox_audio_dac_summary">"Unlinks system volume from headset volume. Allows reaching the DAC's true maximum power. [Warning: Requires reconnecting Bluetooth]."</string>
@@ -33,8 +33,8 @@
 <string name="paradox_cat_battery">Battery Information</string>
 <string name="paradox_cat_battery_info">Battery Information</string>
 <string name="paradox_cat_display_settings">Display Settings</string>
-<string name="paradox_cat_exclusive">Paradox Settings (Exclusive)</string>
-<string name="paradox_cat_exclusive_settings">Paradox Settings (Exclusive)</string>
+<string name="paradox_cat_exclusive">Lotus Settings (Exclusive)</string>
+<string name="paradox_cat_exclusive_settings">Lotus Settings (Exclusive)</string>
 <string name="paradox_cat_info">Information &amp; Contact</string>
 <string name="paradox_cat_info_contact">Information &amp; Contact</string>
 <string name="paradox_cat_ram">Physical Memory</string>
@@ -74,9 +74,9 @@
 <string name="paradox_core_desc_title">Mode behavior</string>
 <string name="paradox_core_mode_battery">Paradox Battery</string>
 <string name="paradox_core_mode_battery_desc">Locked 48 Hz, power saving, AOD off, short screen timeout.</string>
-<string name="paradox_core_mode_gaming">Paradox Gaming</string>
+<string name="paradox_core_mode_gaming">Lotus Gaming</string>
 <string name="paradox_core_mode_gaming_desc">Locked 120 Hz, touch sensitivity, enhanced processing, low latency network behavior.</string>
-<string name="paradox_core_mode_smooth">Paradox Smooth</string>
+<string name="paradox_core_mode_smooth">Lotus Smooth</string>
 <string name="paradox_core_mode_smooth_desc">Adaptive 48-120 Hz, smooth animations, balanced CPU response.</string>
 <string name="paradox_core_mode_stock">Stock+</string>
 <string name="paradox_core_mode_stock_desc">Restore the settings saved before Core Modes changed them.</string>
@@ -136,7 +136,7 @@
 <string name="paradox_screen_res">Resolution and Scaling</string>
 <string name="paradox_screen_res_sum">Current: %1$s</string>
 <string name="paradox_site_summary">Visit our official website.</string>
-<string name="paradox_site_title">Paradox Hub Site</string>
+<string name="paradox_site_title">Lotus Hub Site</string>
 <string name="paradox_swappiness">Swappiness</string>
 <string name="paradox_swappiness_sum">Aggressiveness of moving processes to ZRAM. Default: 100</string>
 <string name="paradox_sysmon_airplane_mode">Airplane mode active</string>
@@ -172,7 +172,7 @@
 <string name="paradox_sysmon_uptime_high">Restart recommended</string>
 <string name="paradox_sysmon_wireless_charging">Wireless charging active</string>
 <string name="paradox_telegram_summary">Join our community for news and support.</string>
-<string name="paradox_telegram_title">Paradox Hub Telegram Channel</string>
+<string name="paradox_telegram_title">Lotus Hub Telegram Channel</string>
 <string name="paradox_therm_a55">Cortex-A55 (Efficiency)</string>
 <string name="paradox_therm_a78">Cortex-A76 (Performance)</string>
 <string name="paradox_therm_cat_cpu">Exynos 990 (Tri-Cluster)</string>
