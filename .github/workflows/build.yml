@@ -1,7 +1,24 @@
-name: Build Arktik
+name: Build Toba
 
 on:
   workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type (debug = Pixeldrain only, test = + GitHub release, release = + OTA XML)'
+        type: choice
+        options:
+          - debug
+          - test
+          - release
+        default: debug
+  pull_request:
+  push:
+    branches:
+      - 'sixteen-qpr2'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -14,7 +31,7 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           submodules: 'recursive'
 
@@ -28,72 +45,70 @@ jobs:
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: true
-          android: true
-          dotnet: true
-          haskell: true
-          
-      - name: Set up Rust Toolchain
-        uses: dtolnay/rust-toolchain@stable
-        
-      - name: Set up JDK 21
-        uses: actions/setup-java@v5
+
+      - name: Free disk space (3/3)
+        uses: rokibhasansagar/slimhub_actions@main
         with:
-          distribution: 'temurin'
-          java-version: '21'
-          cache: 'gradle'
+          retain: 'compiler_cmake'
 
       - name: Set up build environment
         run: |
-          set -euxo pipefail
-
-          sudo apt-get update
-
-          KERNEL_VERSION="$(uname -r)"
-          KERNEL_MOD_EXTRA="linux-modules-extra-${KERNEL_VERSION}"
-
-          if apt-cache show "$KERNEL_MOD_EXTRA" >/dev/null 2>&1; then
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq "$KERNEL_MOD_EXTRA"
-          else
-          echo "::warning::Package $KERNEL_MOD_EXTRA is not available on this runner; skipping it."
-          fi
-
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq \
-          attr ccache clang ffmpeg libbrotli-dev libbz2-dev \
-          libgtest-dev libprotobuf-dev libunwind-dev libpcre2-dev \
-          libzstd-dev lld protobuf-compiler webp \
-          build-essential g++-aarch64-linux-gnu gcc-aarch64-linux-gnu \
-          python-is-python3 python3 wget curl golang-go pcre2-utils
-            
+          sudo apt update
+          DEBIAN_FRONTEND=noninteractive sudo apt install -yq \
+            attr ccache clang ffmpeg libbrotli-dev libbz2-dev \
+            libgtest-dev libprotobuf-dev libunwind-dev libpcre2-dev \
+            libzstd-dev linux-modules-extra-$(uname -r) lld protobuf-compiler webp \
+            build-essential g++-aarch64-linux-gnu gcc-aarch64-linux-gnu python-is-python3 python3 wget
           wget https://raw.githubusercontent.com/kdrag0n/kramflash/refs/heads/master/mkbootimg.py && sudo ln -sf $(pwd)/mkbootimg.py /usr/bin/mkbootimg && chmod +x /usr/bin/mkbootimg
-
           sudo modprobe erofs f2fs
-
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          echo -n "${{ secrets.PLATFORM_KEY_PK8 }}" | base64 --decode > security/monsterrom_platform.pk8
-          echo -n "${{ secrets.PLATFORM_KEY_PEM }}" | base64 --decode > security/monsterrom_platform.x509.pem
+          echo -n "${{ secrets.PLATFORM_KEY_PK8 }}" | base64 --decode > security/artisanrom_platform.pk8
+          echo -n "${{ secrets.PLATFORM_KEY_PEM }}" | base64 --decode > security/artisanrom_platform.x509.pem
+          echo -n "${{ secrets.OTA_KEY_PK8 }}" | base64 --decode > security/artisanrom_ota.pk8
+          echo -n "${{ secrets.OTA_KEY_PEM }}" | base64 --decode > security/artisanrom_ota.x509.pem
 
-      - name: Process Source & Target Firmware
-        shell: bash
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build dependencies
         run: |
-          # Perbaikan: Memastikan
           source ./buildenv.sh ${{ matrix.target }}
-          
-          echo "Downloading and extracting source firmware..."
-          ./scripts/download_fw.sh --force --ignore-target
-          ./scripts/extract_fw.sh --force --ignore-target
-          
-          echo "Downloading and extracting target firmware..."
-          ./scripts/download_fw.sh --force --ignore-source
-          ./scripts/extract_fw.sh --force --ignore-source
-          
-      - name: Build ROMLotus
-        shell: bash
+          ./scripts/build_dependencies.sh
+
+      - name: Download stock firmwares
+        uses: nick-fields/retry@v4
+        with:
+          timeout_minutes: 60
+          max_attempts: 3
+          retry_on: error
+          command: source ./buildenv.sh ${{ matrix.target }} && ./scripts/download_fw.sh
+
+      - name: Extract stock firmwares
         run: |
-          chmod +x scripts/internal/build_odin_package.sh
           source ./buildenv.sh ${{ matrix.target }}
-          ./scripts/make_rom.sh --force
+          ./scripts/extract_fw.sh
+
+      - name: Add swapspace
+        uses: pierotofy/set-swap-space@v1.0
+        with:
+          swap-size-gb: 12
+      
+      - name: Build ROM
+        run: |
+          source ./buildenv.sh ${{ matrix.target }}
+          if [ "${{ github.event.inputs.build_type }}" = "debug" ]; then
+            ./scripts/make_rom.sh --beta
+          else
+            ./scripts/make_rom.sh
+          fi
 
       - name: Upload ROM Artifact
         uses: actions/upload-artifact@v4
@@ -115,7 +130,7 @@ jobs:
             exit 1
           fi
           
-          echo "Mengunggah $ROM_FILE ke akun Pixeldrain Anda..."
+          echo "Mengunggah $ROM_FILE ke akun Pixeldrain..."
           
-          # Menggunakan API Key untuk mengunggah langsung ke akun Anda
+          # To API Key
           curl -X POST -u ":$PIXELDRAIN_API_KEY" -F "file=@$ROM_FILE" https://pixeldrain.com/api/file
