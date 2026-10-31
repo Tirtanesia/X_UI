@@ -1,4 +1,4 @@
-name: Build Arktik
+name: Build Toba
 
 on:
   workflow_dispatch:
