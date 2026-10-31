@@ -1,4 +1,4 @@
-name: Build Arktik
+name: Build Kaspia
 
 on:
   workflow_dispatch:
@@ -115,7 +115,7 @@ jobs:
             exit 1
           fi
           
-          echo "Mengunggah $ROM_FILE ke akun Pixeldrain Anda..."
+          echo "Mengunggah $ROM_FILE ke akun Pixeldrain..."
           
-          # Menggunakan API Key untuk mengunggah langsung ke akun Anda
+          # To API Key
           curl -X POST -u ":$PIXELDRAIN_API_KEY" -F "file=@$ROM_FILE" https://pixeldrain.com/api/file
