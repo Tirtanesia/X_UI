@@ -1,4 +1,4 @@
-name: Build Toba
+name: Build Pasific
 
 on:
   workflow_dispatch:
