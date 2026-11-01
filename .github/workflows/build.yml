@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       build_type:
-        description: 'Build type (debug)
+        description: 
         type: choice
         options:
-          - debug
-        default: debug
+          - defaul
+        default: defaul
   pull_request:
   push:
     branches:
@@ -65,6 +65,13 @@ jobs:
           echo -n "${{ secrets.PLATFORM_KEY_PEM }}" | base64 --decode > security/artisanrom_platform.x509.pem
           echo -n "${{ secrets.OTA_KEY_PK8 }}" | base64 --decode > security/artisanrom_ota.pk8
           echo -n "${{ secrets.OTA_KEY_PEM }}" | base64 --decode > security/artisanrom_ota.x509.pem
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
