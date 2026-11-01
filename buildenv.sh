@@ -214,6 +214,16 @@ else
     return 1
 fi
 
+# Load the selected target's config before sourcing the generated fragment so
+# variables like SOURCE_FIRMWARE/TARGET_FIRMWARE are available to firmware
+# download/extract scripts. The generated config is still sourced afterwards to
+# keep the per-target audio flags in the same environment.
+if [ -f "$SRC_DIR/target/$SELECTED_TARGET/config.sh" ]; then
+    set -o allexport
+    source "$SRC_DIR/target/$SELECTED_TARGET/config.sh"
+    set +o allexport
+fi
+
 set -o allexport; source "$OUT_DIR/config.sh"; set +o allexport
 
 unset TARGETS SELECTED_TARGET
