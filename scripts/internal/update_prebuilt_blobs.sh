@@ -109,3 +109,4 @@ LOG_STEP_IN true "Updating blobs"
 UPDATE_BLOBS || exit 1
 
 exit 0
+
