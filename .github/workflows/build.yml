@@ -1,4 +1,4 @@
-name: Build Pasific
+name: Build Sun
 
 on:
   workflow_dispatch:
