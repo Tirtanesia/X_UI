@@ -20,6 +20,7 @@ concurrency:
 
 env:
   TARGET_OS_SINGLE_SYSTEM_IMAGE: "essi_64"
+  TARGET_OS_BUILD_SYSTEM_EXT_PARTITION: "false"
 
 jobs:
   build:
