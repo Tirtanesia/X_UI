@@ -157,6 +157,7 @@ if [ -z "${TARGET_OS_BUILD_SYSTEM_EXT_PARTITION:-}" ]; then
     export TARGET_OS_BUILD_SYSTEM_EXT_PARTITION="false"
 fi
 
+
 TARGETS=()
 while IFS= read -r t; do
     TARGETS+=("$t")
