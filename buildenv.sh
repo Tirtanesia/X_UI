@@ -139,6 +139,12 @@ export FW_DIR="$OUT_DIR/fw"
 export TOOLS_DIR="$OUT_DIR/tools"
 export PATH="$TOOLS_DIR/bin:$PATH"
 
+# Default build config for SSI devices without a system_ext partition.
+# Some targets (especially single-system-image devices) don't define this.
+# The generator script treats an empty value as a fatal error, so force a valid boolean.
+export TARGET_OS_BUILD_SYSTEM_EXT_PARTITION="${TARGET_OS_BUILD_SYSTEM_EXT_PARTITION:-false}"
+export TARGET_OS_SINGLE_SYSTEM_IMAGE="${TARGET_OS_SINGLE_SYSTEM_IMAGE:-essi_64}"
+
 TARGETS=()
 while IFS= read -r t; do
     TARGETS+=("$t")
@@ -198,7 +204,7 @@ cat <<'EOF'
     ____                       __           __  ______
    / __ \____ __________ _____/ /___  _  __/ / / /  _/
   / /_/ / __ `/ ___/ __ `/ __  / __ \| |/_/ / / // / 
- / ____/ /_/ / /  / /_/ / /_/ / /_/ />  </ /_/ // /  
+ / ____/ /_/ / /  / /_/ / /_/ / /_/ />  </  /_/ // /  
 /_/    \__,_/_/   \__,_/\__,_/\____/_/|_|\____/___/   
      #DiveIntoTheParadox                              
 
