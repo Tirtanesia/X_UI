@@ -7,8 +7,8 @@ on:
         description: 
         type: choice
         options:
-          - defaul
-        default: defaul
+          - default
+        default: default
   pull_request:
   push:
     branches:
