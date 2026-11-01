@@ -139,11 +139,23 @@ export FW_DIR="$OUT_DIR/fw"
 export TOOLS_DIR="$OUT_DIR/tools"
 export PATH="$TOOLS_DIR/bin:$PATH"
 
-# Default build config for SSI devices without a system_ext partition.
-# Some targets (especially single-system-image devices) don't define this.
-# The generator script treats an empty value as a fatal error, so force a valid boolean.
-export TARGET_OS_BUILD_SYSTEM_EXT_PARTITION="${TARGET_OS_BUILD_SYSTEM_EXT_PARTITION:-false}"
-export TARGET_OS_SINGLE_SYSTEM_IMAGE="${TARGET_OS_SINGLE_SYSTEM_IMAGE:-essi_64}"
+# Backward-compatibility aliases for older target configs.
+# Some devices still define TARGET_SINGLE_SYSTEM_IMAGE / TARGET_HAS_SYSTEM_EXT,
+# while the generator expects TARGET_OS_SINGLE_SYSTEM_IMAGE / TARGET_OS_BUILD_SYSTEM_EXT_PARTITION.
+if [ -z "${TARGET_OS_SINGLE_SYSTEM_IMAGE:-}" ] && [ -n "${TARGET_SINGLE_SYSTEM_IMAGE:-}" ]; then
+    export TARGET_OS_SINGLE_SYSTEM_IMAGE="$TARGET_SINGLE_SYSTEM_IMAGE"
+fi
+if [ -z "${TARGET_OS_BUILD_SYSTEM_EXT_PARTITION:-}" ] && [ -n "${TARGET_HAS_SYSTEM_EXT:-}" ]; then
+    export TARGET_OS_BUILD_SYSTEM_EXT_PARTITION="$TARGET_HAS_SYSTEM_EXT"
+fi
+
+# Fallback only for targets that do not define either old or new variables.
+if [ -z "${TARGET_OS_SINGLE_SYSTEM_IMAGE:-}" ]; then
+    export TARGET_OS_SINGLE_SYSTEM_IMAGE="essi"
+fi
+if [ -z "${TARGET_OS_BUILD_SYSTEM_EXT_PARTITION:-}" ]; then
+    export TARGET_OS_BUILD_SYSTEM_EXT_PARTITION="false"
+fi
 
 TARGETS=()
 while IFS= read -r t; do
