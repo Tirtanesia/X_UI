@@ -142,9 +142,17 @@ COPY_TARGET_KERNEL()
         [ -d "$WORK_DIR/kernel" ] && rm -rf "$WORK_DIR/kernel"
     fi
     if $TARGET_INCLUDE_PATCHED_VBMETA; then
+        local VBMETA_SRC="$FW_DIR/$TARGET_FIRMWARE_PATH/vbmeta_patched.img"
+        if [ ! -f "$VBMETA_SRC" ]; then
+            LOG "\033[0;31m! Missing patched vbmeta image\033[0m"
+            LOG "   Expected: $VBMETA_SRC"
+            LOG "   This usually means the firmware extraction step did not generate vbmeta_patched.img."
+            LOG "   Check the selected target ($TARGET_FIRMWARE) and the stock firmware extraction logs."
+            exit 1
+        fi
         LOG "- Copying vbmeta.img from target firmware"
         mkdir -p "$WORK_DIR/kernel"
-        EVAL "cp -a \"$FW_DIR/$TARGET_FIRMWARE_PATH/vbmeta_patched.img\" \"$WORK_DIR/kernel/vbmeta.img\"" || exit 1
+        EVAL "cp -a \"$VBMETA_SRC\" \"$WORK_DIR/kernel/vbmeta.img\"" || exit 1
     else
         [ -f "$WORK_DIR/kernel/vbmeta.img" ] && rm -f "$WORK_DIR/kernel/vbmeta.img"
         [ -d "$WORK_DIR/kernel" ] && [ -n "$(find "$WORK_DIR/kernel" -maxdepth 0 -empty)" ] && rm -rf "$WORK_DIR/kernel"
