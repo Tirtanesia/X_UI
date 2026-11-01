@@ -5,6 +5,28 @@
 source "$SRC_DIR/scripts/utils/build_utils.sh" || return 1
 # ]
 
+# REQUIRE_EXTRACTION_PRIVILEGES
+# Ensures the user can acquire sudo privileges before extracting firmware images.
+REQUIRE_EXTRACTION_PRIVILEGES()
+{
+    if ! command -v sudo >/dev/null 2>&1; then
+        LOGE "sudo is required to extract firmware images"
+        return 1
+    fi
+
+    if sudo -n -v >/dev/null 2>&1; then
+        return 0
+    fi
+
+    LOG "- Requesting sudo privileges for firmware extraction..."
+    if ! sudo -v >/dev/null 2>&1; then
+        LOGE "Unable to acquire sudo privileges required for firmware extraction"
+        return 1
+    fi
+
+    return 0
+}
+
 # COMPARE_SEC_BUILD_VERSION <string1> <string2>
 # Returns whether or not `string1` build number is older than `string2`.
 COMPARE_SEC_BUILD_VERSION()
