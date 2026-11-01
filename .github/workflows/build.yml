@@ -18,6 +18,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  TARGET_OS_SINGLE_SYSTEM_IMAGE: "essi_64"
+
 jobs:
   build:
     runs-on: ubuntu-24.04
