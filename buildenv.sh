@@ -34,8 +34,7 @@ _GET_SRC_DIR()
             local HERE="$PWD"
             local T=
             while [ \( ! \( -f "$TOPFILE" \) \) ] && [ \( "$PWD" != "/" \) ]; do
-                \cd ..
-                T="$(PWD= /bin/pwd -P)"
+                
             done
             \cd "$HERE"
             if [ -f "$T/$TOPFILE" ]; then
@@ -205,7 +204,15 @@ export WORK_DIR="$OUT_DIR/target/$SELECTED_TARGET/work_dir"
 mkdir -p "$OUT_DIR/target/$SELECTED_TARGET"
 # shellcheck disable=SC2046
 [ -f "$OUT_DIR/config.sh" ] && unset $(sed "/Automatically/d" "$OUT_DIR/config.sh" | cut -d "=" -f 1)
-"$SRC_DIR/scripts/internal/gen_config_file.sh" "$SELECTED_TARGET" || return 1
+
+CONFIG_GENERATOR="$SRC_DIR/scripts/internal/gen_config_file.sh"
+if [ -f "$CONFIG_GENERATOR" ]; then
+    bash "$CONFIG_GENERATOR" "$SELECTED_TARGET" || return 1
+else
+    echo "Missing config generator: $CONFIG_GENERATOR" >&2
+    return 1
+fi
+
 set -o allexport; source "$OUT_DIR/config.sh"; set +o allexport
 
 unset TARGETS SELECTED_TARGET
@@ -215,11 +222,11 @@ sed "/Automatically/d" "$OUT_DIR/config.sh"
 echo "================================================"
 cat <<'EOF'
     ____                       __           __  ______
-   / __ \____ __________ _____/ /___  _  __/ / / /  _/
-  / /_/ / __ `/ ___/ __ `/ __  / __ \| |/_/ / / // / 
- / ____/ /_/ / /  / /_/ / /_/ / /_/ />  </  /_/ // /  
-/_/    \__,_/_/   \__,_/\__,_/\____/_/|_|\____/___/   
-     #DiveIntoTheParadox                              
+    / __ \____ __________ _____/ /___  _  __/ / / /  _/
+   / /_/ / __ `/ ___/ __ `/ __  / __ \| |/_/ / / // / 
+  / ____/ /_/ / /  / /_/ / /_/ / /_/ />  /  /_/ // /  
+ /_/    \__,_/_/   \__,_/\__,_/\____/_/|_|\____/___/   
+      #DiveIntoTheParadox                              
 
 EOF
 echo "================================================"
