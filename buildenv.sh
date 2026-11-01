@@ -33,10 +33,11 @@ _GET_SRC_DIR()
         else
             local HERE="$PWD"
             local T=
-            while [ \( ! \( -f "$TOPFILE" \) \) ] && [ \( "$PWD" != "/" \) ]; do
-                
+            while [ ! -f "$TOPFILE" ] && [ "$PWD" != "/" ]; do
+                T="$PWD"
+                cd ..
             done
-            \cd "$HERE"
+            cd "$HERE"
             if [ -f "$T/$TOPFILE" ]; then
                 echo "$T"
             fi
