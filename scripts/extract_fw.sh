@@ -100,7 +100,11 @@ EXTRACT_OS_PARTITIONS()
 
         [ -f "$FW_DIR/${MODEL}_${CSC}/$f" ] || continue
 
-        REQUIRE_EXTRACTION_PRIVILEGES || exit 1
+        REQUIRE_EXTRACTION_PRIVILEGES() {
+    return 0
+}
+REQUIRE_EXTRACTION_PRIVILEGES || exit 1
+
 
         LOG "- Unpacking $(basename "$f")..."
 
