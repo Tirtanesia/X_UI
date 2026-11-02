@@ -33,11 +33,11 @@ _GET_SRC_DIR()
         else
             local HERE="$PWD"
             local T=
-            while [ ! -f "$TOPFILE" ] && [ "$PWD" != "/" ]; do
-                T="$PWD"
-                cd ..
+            while [ \( ! \( -f "$TOPFILE" \) \) ] && [ \( "$PWD" != "/" \) ]; do
+                \cd ..
+                T="$(PWD= /bin/pwd -P)"
             done
-            cd "$HERE"
+            \cd "$HERE"
             if [ -f "$T/$TOPFILE" ]; then
                 echo "$T"
             fi
@@ -139,25 +139,6 @@ export FW_DIR="$OUT_DIR/fw"
 export TOOLS_DIR="$OUT_DIR/tools"
 export PATH="$TOOLS_DIR/bin:$PATH"
 
-# Backward-compatibility aliases for older target configs.
-# Some devices still define TARGET_SINGLE_SYSTEM_IMAGE / TARGET_HAS_SYSTEM_EXT,
-# while the generator expects TARGET_OS_SINGLE_SYSTEM_IMAGE / TARGET_OS_BUILD_SYSTEM_EXT_PARTITION.
-if [ -z "${TARGET_OS_SINGLE_SYSTEM_IMAGE:-}" ] && [ -n "${TARGET_SINGLE_SYSTEM_IMAGE:-}" ]; then
-    export TARGET_OS_SINGLE_SYSTEM_IMAGE="$TARGET_SINGLE_SYSTEM_IMAGE"
-fi
-if [ -z "${TARGET_OS_BUILD_SYSTEM_EXT_PARTITION:-}" ] && [ -n "${TARGET_HAS_SYSTEM_EXT:-}" ]; then
-    export TARGET_OS_BUILD_SYSTEM_EXT_PARTITION="$TARGET_HAS_SYSTEM_EXT"
-fi
-
-# Fallback only for targets that do not define either old or new variables.
-if [ -z "${TARGET_OS_SINGLE_SYSTEM_IMAGE:-}" ]; then
-    export TARGET_OS_SINGLE_SYSTEM_IMAGE="essi"
-fi
-if [ -z "${TARGET_OS_BUILD_SYSTEM_EXT_PARTITION:-}" ]; then
-    export TARGET_OS_BUILD_SYSTEM_EXT_PARTITION="false"
-fi
-
-
 TARGETS=()
 while IFS= read -r t; do
     TARGETS+=("$t")
@@ -205,15 +186,7 @@ export WORK_DIR="$OUT_DIR/target/$SELECTED_TARGET/work_dir"
 mkdir -p "$OUT_DIR/target/$SELECTED_TARGET"
 # shellcheck disable=SC2046
 [ -f "$OUT_DIR/config.sh" ] && unset $(sed "/Automatically/d" "$OUT_DIR/config.sh" | cut -d "=" -f 1)
-
-CONFIG_GENERATOR="$SRC_DIR/scripts/internal/gen_config_file.sh"
-if [ -f "$CONFIG_GENERATOR" ]; then
-    bash "$CONFIG_GENERATOR" "$SELECTED_TARGET" || return 1
-else
-    echo "Missing config generator: $CONFIG_GENERATOR" >&2
-    return 1
-fi
-
+"$SRC_DIR/scripts/internal/gen_config_file.sh" "$SELECTED_TARGET" || return 1
 set -o allexport; source "$OUT_DIR/config.sh"; set +o allexport
 
 unset TARGETS SELECTED_TARGET
@@ -223,11 +196,11 @@ sed "/Automatically/d" "$OUT_DIR/config.sh"
 echo "================================================"
 cat <<'EOF'
     ____                       __           __  ______
-    / __ \____ __________ _____/ /___  _  __/ / / /  _/
-   / /_/ / __ `/ ___/ __ `/ __  / __ \| |/_/ / / // / 
-  / ____/ /_/ / /  / /_/ / /_/ / /_/ />  /  /_/ // /  
- /_/    \__,_/_/   \__,_/\__,_/\____/_/|_|\____/___/   
-      #DiveIntoTheParadox                              
+   / __ \____ __________ _____/ /___  _  __/ / / /  _/
+  / /_/ / __ `/ ___/ __ `/ __  / __ \| |/_/ / / // / 
+ / ____/ /_/ / /  / /_/ / /_/ / /_/ />  </ /_/ // /  
+/_/    \__,_/_/   \__,_/\__,_/\____/_/|_|\____/___/   
+     #DiveIntoTheParadox                              
 
 EOF
 echo "================================================"
