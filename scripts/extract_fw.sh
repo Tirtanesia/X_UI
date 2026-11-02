@@ -10,7 +10,9 @@ REQUIRE_EXTRACTION_PRIVILEGES() {
     return 0
 }
 
-FORCE=false
+REQUIRE_EXTRACTION_PRIVILEGES || exit 1
+
+LOG "- Unpacking $(basename "$f")..."
 
 FIRMWARES=()
 MODEL=""
