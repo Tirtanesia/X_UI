@@ -79,8 +79,10 @@ jobs:
           git submodule update --init --recursive
           chmod +x ./buildenv.sh
           chmod -R +x scripts/
+          set -a
           source ./buildenv.sh c1s
           ./scripts/build_dependencies.sh
+          set +a
 
       - name: Download source firmware
         run: |
@@ -102,7 +104,7 @@ jobs:
           source ./buildenv.sh ${{ matrix.target }}
           ./scripts/extract_fw.sh --force --ignore-source
 
-      - name: Build ROM
+      - name: Build 
         run: |
           chmod +x scripts/internal/build_odin_package.sh
           source ./buildenv.sh ${{ matrix.target }}
@@ -116,7 +118,7 @@ jobs:
             out/*.tar*
             out/*.zip*
 
-      - name: Upload ROMM4
+      - name: Upload S26+
         env:
           PIXELDRAIN_API_KEY: ${{ secrets.PIXELDRAIN_API_KEY }}
         run: |
