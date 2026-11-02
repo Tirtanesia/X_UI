@@ -36,10 +36,20 @@ jobs:
 
       - name: Set up build environment
         run: |
-         sudo apt-get update
-         sudo apt-get install -y linux-modules-extra-$(uname -r)
-          sudo 
-          DEBIAN_FRONTEND=noninteractive apt-get install -yq \
+          set -euxo pipefail
+
+          sudo apt-get update
+
+          KERNEL_VERSION="$(uname -r)"
+          KERNEL_MOD_EXTRA="linux-modules-extra-${KERNEL_VERSION}"
+
+          if apt-cache show "$KERNEL_MOD_EXTRA" >/dev/null 2>&1; then
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq "$KERNEL_MOD_EXTRA"
+          else
+          echo "::warning::Package $KERNEL_MOD_EXTRA is not available on this runner; skipping it."
+          fi
+
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq \
           attr ccache clang ffmpeg libbrotli-dev libbz2-dev \
           libgtest-dev libprotobuf-dev libunwind-dev libpcre2-dev \
           libzstd-dev lld protobuf-compiler webp \
