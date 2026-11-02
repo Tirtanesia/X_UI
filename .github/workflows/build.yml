@@ -76,18 +76,16 @@ jobs:
 
       - name: Build dependencies
         run: |
-          git submodule update --init --recursive
-          chmod +x ./buildenv.sh
-          chmod -R +x scripts/
-          set -a
-          source ./buildenv.sh c1s
-          ./scripts/build_dependencies.sh
-          set +a
-
-      - name: Download source firmware
-        run: |
           source ./buildenv.sh ${{ matrix.target }}
-          ./scripts/download_fw.sh --force --ignore-target
+          ./scripts/build_dependencies.sh
+
+      - name: Download stock firmwares
+        uses: nick-fields/retry@v4
+        with:
+          timeout_minutes: 60
+          max_attempts: 3
+          retry_on: error
+          command: source ./buildenv.sh ${{ matrix.target }} && ./scripts/download_fw.sh
 
       - name: Extract source firmware
         run: |
