@@ -71,20 +71,14 @@ jobs:
           java-version: '21'
           cache: 'gradle'
 
+      - name: Install Latest Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Build dependencies
         run: |
-          # 1. Pastikan semua modul eksternal terunduh
           git submodule update --init --recursive
-
-          # 2. Pasang Rust & Cargo versi terbaru secara resmi
-          curl --proto '=https' --tlsv1.2 -sSf https://rustup.rs | sh -s -- -y
-          source $HOME/.cargo/env
-
-          # 3. Berikan izin eksekusi skrip
           chmod +x ./buildenv.sh
           chmod -R +x scripts/
-
-          # 4. Jalankan proses build
           source ./buildenv.sh c1s
           ./scripts/build_dependencies.sh
 
