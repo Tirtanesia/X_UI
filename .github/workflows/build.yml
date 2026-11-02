@@ -106,10 +106,10 @@ jobs:
           retry_on: error
           command: source ./buildenv.sh ${{ matrix.target }} && ./scripts/download_fw.sh
 
-      - name: Extract stock firmwares
+            - name: Extract stock firmwares
         run: |
           source ./buildenv.sh ${{ matrix.target }}
-          ./scripts/extract_fw.sh
+          sudo -E ./scripts/extract_fw.sh
 
       - name: Add swapspace
         uses: pierotofy/set-swap-space@v1.0
