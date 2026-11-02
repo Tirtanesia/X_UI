@@ -94,5 +94,9 @@ sed -i "$PLAT_SEPOLICY" \
     -e '\#(genfscon tracefs "/hypervisor" (u object_r debugfs_tracing ((s0) (s0))))#d'
 LOG_STEP_OUT
 
+LOG "- Injecting Bluetooth keystore2 policy bypass"
+echo "(allow bluetooth keystore (keystore2 (get_key_entry use)))" >> "$WORK_DIR/system/system/etc/selinux/plat_sepolicy.cil"
+echo "(allow bluetooth bluetooth_data_file (dir (search read)))" >> "$WORK_DIR/system/system/etc/selinux/plat_sepolicy.cil"
+
 
 
