@@ -136,9 +136,13 @@ DECODE()
     fi
 
     # https://github.com/iBotPeaches/Apktool/issues/3615
+    # Avoid stale extracted resources in CI: recreate the temporary folder and
+    # overwrite non-interactively so apktool never blocks on a stdin prompt.
     if [[ "$INPUT_FILE" == *"framework.jar" ]]; then
         if unzip -l "$INPUT_FILE" | grep -q "debian.mime.types"; then
-            unzip -q "$INPUT_FILE" "res/*" -d "$OUTPUT_PATH/unknown"
+            rm -rf "$OUTPUT_PATH/unknown"
+            mkdir -p "$OUTPUT_PATH/unknown/res"
+            unzip -oq -o "$INPUT_FILE" "res/*" -d "$OUTPUT_PATH/unknown"
         fi
     fi
 }
