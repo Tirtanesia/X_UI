@@ -73,6 +73,7 @@ jobs:
 
       - name: Build dependencies
         run: |
+          chmod +x ./buildenv.sh
           chmod -R +x scripts/
           source ./buildenv.sh ${{ matrix.target }}
           ./scripts/build_dependencies.sh
