@@ -101,7 +101,8 @@ jobs:
       - name: Extract target firmware
         run: |
           source ./buildenv.sh ${{ matrix.target }}
-          ./scripts/extract_fw.sh --force --ignore-source
+          yes A | ./scripts/make_rom.sh --force
+ --ignore-source
 
       - name: Build 
         run: |
