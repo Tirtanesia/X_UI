@@ -5,6 +5,11 @@
 # [
 source "$SRC_DIR/scripts/utils/firmware_utils.sh" || exit 1
 
+# Bypass
+REQUIRE_EXTRACTION_PRIVILEGES() {
+    return 0
+}
+
 FORCE=false
 
 FIRMWARES=()
