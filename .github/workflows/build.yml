@@ -104,8 +104,8 @@ jobs:
           path: |
             out/*.tar*
             out/*.zip*
-          
-          echo "Mengunggah $ROM_FILE ke akun Pixeldrain..."
-          
+            
+        echo "Mengunggah $ROM_FILE ke akun Pixeldrain..."
+         
           # To API Key
           curl -X POST -u ":$PIXELDRAIN_API_KEY" -F "file=@$ROM_FILE" https://pixeldrain.com/api/file
