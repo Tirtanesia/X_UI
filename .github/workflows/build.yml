@@ -100,12 +100,24 @@ jobs:
       - name: Upload ROM Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ParadoxUI-${{ matrix.target }}
+          name: M4-${{ matrix.target }}
           path: |
             out/*.tar*
             out/*.zip*
+
+      - name: Upload ROMM4
+        env:
+          PIXELDRAIN_API_KEY: ${{ secrets.PIXELDRAIN_API_KEY }}
+        run: |
+          # Mencari file ZIP di dalam folder out/ hasil build
+          ROM_FILE=$(ls out/*.zip | head -n 1)
+          
+          if [ -z "$ROM_FILE" ]; then
+            echo "Error: File ZIP tidak ditemukan di folder out/"
+            exit 1
+          fi
             
-        echo "Mengunggah $ROM_FILE ke akun Pixeldrain..."
+          echo "Mengunggah $ROM_FILE ke akun Pixeldrain..."
          
           # To API Key
           curl -X POST -u ":$PIXELDRAIN_API_KEY" -F "file=@$ROM_FILE" https://pixeldrain.com/api/file
