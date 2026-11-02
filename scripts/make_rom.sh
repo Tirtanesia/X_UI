@@ -124,14 +124,23 @@ BUILD_APKS()
     if [ -d "$APKTOOL_DIR" ]; then
         LOG_STEP_IN true "Building APKs/JARs"
 
-        # shellcheck disable=SC2016
-        find "$APKTOOL_DIR" -type d \( -name "*.apk" -o -name "*.jar" \) -print0 | xargs -0 -I "{}" -P "$MAX_JOBS" \
-            bash -c '
-                FILE="${1/$APKTOOL_DIR\//}"
+        # The wrapper script expects: apktool.sh b <partition> <file>
+        # and does not accept the unsupported -j flag.
+        find "$APKTOOL_DIR" -type d \( -name "*.apk" -o -name "*.jar" \) -print0 | \
+            while IFS= read -r -d '' APK_DIR; do
+                FILE="${APK_DIR/$APKTOOL_DIR\//}"
                 PARTITION="$(cut -d "/" -f 1 -s <<< "$FILE")"
                 [[ "$PARTITION" != "system" ]] && FILE="$(cut -d "/" -f 2- -s <<< "$FILE")"
-                "$SRC_DIR/scripts/apktool.sh" b -j "$2" "$PARTITION" "$FILE"
-            ' "bash" "{}" "$MAX_JOBS" || exit 1
+
+                case "$(basename "$FILE")" in
+                    Viper4Android.apk|Viper4Android*.apk)
+                        LOG "- Skipping excluded APK: $(basename "$FILE")"
+                        continue
+                        ;;
+                esac
+
+                "$SRC_DIR/scripts/apktool.sh" b "$PARTITION" "$FILE" || exit 1
+            done
 
         LOG_STEP_OUT
     fi
@@ -159,7 +168,7 @@ PREPARE_SCRIPT()
             USE_APK_CACHE=true
         elif [[ "$1" == "--no-rom-zip" ]] || [[ "$1" == "-z" ]]; then
             BUILD_ZIP=false
-	elif [[ "$1" == "--debug" ]] || [[ "$1" == "-d" ]]; then
+        elif [[ "$1" == "--debug" ]] || [[ "$1" == "-d" ]]; then
             DEBUG=true
         elif [[ "$1" == "--beta" ]] || [[ "$1" == "-b" ]]; then
             BETA=true
@@ -308,4 +317,3 @@ if $BUILD_ZIP; then
 fi
 
 exit 0
-
