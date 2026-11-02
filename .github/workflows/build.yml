@@ -1,26 +1,7 @@
-name: Build Sun
+name: Build ParadoxUI
 
 on:
   workflow_dispatch:
-    inputs:
-      build_type:
-        description: 
-        type: choice
-        options:
-          - default
-        default: default
-  pull_request:
-  push:
-    branches:
-      - 'sixteen-qpr2'
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  TARGET_OS_SINGLE_SYSTEM_IMAGE: "essi_64"
-  TARGET_OS_BUILD_SYSTEM_EXT_PARTITION: "false"
 
 jobs:
   build:
@@ -29,11 +10,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [c1s]
+        target: [y2s,x1s,r8s,z3s,beyond1lte,beyond0lte,beyond2lte]
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v7
+        uses: actions/checkout@v5
         with:
           submodules: 'recursive'
 
@@ -55,33 +36,28 @@ jobs:
 
       - name: Set up build environment
         run: |
-          set -euxo pipefail
+         sudo apt update
+          DEBIAN_FRONTEND=noninteractive sudo apt install -yq \
+            attr ccache clang ffmpeg libbrotli-dev libbz2-dev \
+            libgtest-dev libprotobuf-dev libunwind-dev libpcre2-dev \
+            libzstd-dev linux-modules-extra-$(uname -r) lld protobuf-compiler webp \
+            build-essential g++-aarch64-linux-gnu gcc-aarch64-linux-gnu \
+            python-is-python3 python3 wget curl
 
-          sudo apt-get update
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source "$HOME/.cargo/env"
 
-          KERNEL_VERSION="$(uname -r)"
-          KERNEL_MOD_EXTRA="linux-modules-extra-${KERNEL_VERSION}"
+          rustc --version
+          cargo --version
 
-          if apt-cache show "$KERNEL_MOD_EXTRA" >/dev/null 2>&1; then
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq "$KERNEL_MOD_EXTRA"
-          else
-          echo "::warning::Package $KERNEL_MOD_EXTRA is not available on this runner; skipping it."
-          fi
-
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq \
-          attr ccache clang ffmpeg libbrotli-dev libbz2-dev \
-          libgtest-dev libprotobuf-dev libunwind-dev libpcre2-dev \
-          libzstd-dev lld protobuf-compiler webp \
-          build-essential g++-aarch64-linux-gnu gcc-aarch64-linux-gnu \
-          python-is-python3 python3 wget curl golang-go pcre2-utils    
           wget https://raw.githubusercontent.com/kdrag0n/kramflash/refs/heads/master/mkbootimg.py && sudo ln -sf $(pwd)/mkbootimg.py /usr/bin/mkbootimg && chmod +x /usr/bin/mkbootimg
+
           sudo modprobe erofs f2fs
+
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          echo -n "${{ secrets.PLATFORM_KEY_PK8 }}" | base64 --decode > security/artisanrom_platform.pk8
-          echo -n "${{ secrets.PLATFORM_KEY_PEM }}" | base64 --decode > security/artisanrom_platform.x509.pem
-          echo -n "${{ secrets.OTA_KEY_PK8 }}" | base64 --decode > security/artisanrom_ota.pk8
-          echo -n "${{ secrets.OTA_KEY_PEM }}" | base64 --decode > security/artisanrom_ota.x509.pem
+          echo -n "${{ secrets.PLATFORM_KEY_PK8 }}" | base64 --decode > security/monsterrom_platform.pk8
+          echo -n "${{ secrets.PLATFORM_KEY_PEM }}" | base64 --decode > security/monsterrom_platform.x509.pem
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
@@ -90,60 +66,44 @@ jobs:
           java-version: '21'
           cache: 'gradle'
 
-      - name: Set up Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
       - name: Build dependencies
         run: |
           source ./buildenv.sh ${{ matrix.target }}
           ./scripts/build_dependencies.sh
 
-      - name: Download stock firmwares
-        uses: nick-fields/retry@v4
-        with:
-          timeout_minutes: 60
-          max_attempts: 3
-          retry_on: error
-          command: source ./buildenv.sh ${{ matrix.target }} && ./scripts/download_fw.sh
-
-      - name: Extract stock firmwares
+      - name: Download source firmware
         run: |
           source ./buildenv.sh ${{ matrix.target }}
-          ./scripts/extract_fw.sh
+          ./scripts/download_fw.sh --force --ignore-target
 
-      - name: Add swapspace
-        uses: pierotofy/set-swap-space@v1.0
-        with:
-          swap-size-gb: 12
-      
+      - name: Extract source firmware
+        run: |
+          source ./buildenv.sh ${{ matrix.target }}
+          ./scripts/extract_fw.sh --force --ignore-target
+
+      - name: Download target firmware
+        run: |
+          source ./buildenv.sh ${{ matrix.target }}
+          ./scripts/download_fw.sh --force --ignore-source
+
+      - name: Extract target firmware
+        run: |
+          source ./buildenv.sh ${{ matrix.target }}
+          ./scripts/extract_fw.sh --force --ignore-source
+
       - name: Build ROM
         run: |
+          chmod +x scripts/internal/build_odin_package.sh
           source ./buildenv.sh ${{ matrix.target }}
-          if [ "${{ github.event.inputs.build_type }}" = "debug" ]; then
-            ./scripts/make_rom.sh --beta
-          else
-            ./scripts/make_rom.sh
-          fi
+          ./scripts/make_rom.sh --force
 
       - name: Upload ROM Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Arktik-${{ matrix.target }}
+          name: ParadoxUI-${{ matrix.target }}
           path: |
             out/*.tar*
             out/*.zip*
-
-      - name: Upload ROMLotus
-        env:
-          PIXELDRAIN_API_KEY: ${{ secrets.PIXELDRAIN_API_KEY }}
-        run: |
-          # Mencari file ZIP di dalam folder out/ hasil build
-          ROM_FILE=$(ls out/*.zip | head -n 1)
-          
-          if [ -z "$ROM_FILE" ]; then
-            echo "Error: File ZIP tidak ditemukan di folder out/"
-            exit 1
-          fi
           
           echo "Mengunggah $ROM_FILE ke akun Pixeldrain..."
           
