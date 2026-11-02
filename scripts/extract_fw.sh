@@ -105,7 +105,6 @@ EXTRACT_OS_PARTITIONS()
 }
 REQUIRE_EXTRACTION_PRIVILEGES || exit 1
 
-
         LOG "- Unpacking $(basename "$f")..."
 
         mkdir -p "$FW_DIR/${MODEL}_${CSC}/$PARTITION"
