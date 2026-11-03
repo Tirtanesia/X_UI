@@ -298,21 +298,45 @@ if $BUILD_ROM; then
         LOG_STEP_OUT
     fi
 
-    if $USE_APK_CACHE && RESTORE_APK_CACHE; then
-        LOG "Skipping APK/JAR compilation"
-    else
-        if $USE_APK_CACHE; then
-            LOGW "APK/JAR cache is missing or stale. Rebuilding it."
+    if [ -d "$APKTOOL_DIR" ]; then
+        LOG_STEP_IN true "Building APKs/JARs"
+
+        BUILD_PIDS=()
+        while IFS= read -r f; do
+            f="${f/$APKTOOL_DIR\//}"
+            PARTITION="$(cut -d "/" -f 1 -s <<< "$f")"
+    if [[ "$PARTITION" == "system" ]]; then
+                "$SRC_DIR/scripts/apktool.sh" b "system" "$f" &
+            else
+                "$SRC_DIR/scripts/apktool.sh" b "$PARTITION" "$(cut -d "/" -f 2- -s <<< "$f")" &
         fi
-        BUILD_APKS
-        UPDATE_APK_CACHE || exit 1
+            BUILD_PIDS+=("$!")
+        done < <(find "$APKTOOL_DIR" -type d \( -name "*.apk" -o -name "*.jar" \))
+
+        BUILD_FAILED=0
+        for PID in "${BUILD_PIDS[@]}"; do
+            wait "$PID" || BUILD_FAILED=1
+        done
+
+        if [[ "$BUILD_FAILED" == "1" ]]; then
+            unset BUILD_PIDS
+            LOGE "One or more APK/JAR builds failed. See the errors above."
+            exit 1
+        fi
+        unset BUILD_PIDS BUILD_FAILED
+
+        LOG_STEP_OUT
     fi
 
     echo -n "$(GET_WORK_DIR_HASH)" > "$WORK_DIR/.completed"
 fi
 
+if [ -n "$GITHUB_ACTIONS" ]; then
+    bash "$SRC_DIR/scripts/cleanup.sh" fw kernel
+fi
+
 if $BUILD_ZIP; then
-    LOG_STEP_IN true "Creating zip"
+    LOG_STEP_IN true "Creating flashable zip"
     "$SRC_DIR/scripts/internal/build_flashable_zip.sh" || exit 1
     LOG_STEP_OUT
 fi
