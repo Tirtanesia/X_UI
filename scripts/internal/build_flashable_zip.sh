@@ -4,7 +4,6 @@
 
 # [
 source "$SRC_DIR/scripts/utils/build_utils.sh" || exit 1
-source "$SRC_DIR/scripts/utils/install_utils.sh" || exit 1
 
 SOURCE_FIRMWARE_PATH="$(cut -d "/" -f 1 -s <<< "$SOURCE_FIRMWARE")_$(cut -d "/" -f 2 -s <<< "$SOURCE_FIRMWARE")"
 TARGET_FIRMWARE_PATH="$(cut -d "/" -f 1 -s <<< "$TARGET_FIRMWARE")_$(cut -d "/" -f 2 -s <<< "$TARGET_FIRMWARE")"
@@ -21,16 +20,25 @@ TMP_DIR="$OUT_DIR/zip"
 # can override this with UNICA_BROTLI_QUALITY=6 (valid range: 0-11).
 BROTLI_QUALITY="${UNICA_BROTLI_QUALITY:-6}"
 
+# Set to false in a target config to get a signed flashable ZIP.
+TARGET_DISABLE_ZIP_SIGNING="${TARGET_DISABLE_ZIP_SIGNING:-true}"
+
+if ! $TARGET_DISABLE_ZIP_SIGNING && { ! $DEBUG || $ROM_IS_OFFICIAL; }; then
+    SIGN_ZIP=true
+else
+    SIGN_ZIP=false
+fi
+
 ROM_STATUS="UNOFFICIAL"
 $ROM_IS_OFFICIAL && ROM_STATUS="OFFICIAL"
 
 ZIP_FILE_SUFFIX="-sign.zip"
-$DEBUG && ! $ROM_IS_OFFICIAL && ZIP_FILE_SUFFIX=".zip"
+$SIGN_ZIP || ZIP_FILE_SUFFIX=".zip"
 
-ZIP_FILE_NAME="ArtisanROM_${ROM_STATUS}_${ROM_VERSION}_$(date +%Y%m%d)_${TARGET_CODENAME}${ZIP_FILE_SUFFIX}"
+ZIP_FILE_NAME="ParadoxUI_${ROM_STATUS}_${ROM_VERSION}_$(date +%Y%m%d)_${TARGET_CODENAME}${ZIP_FILE_SUFFIX}"
 while [ -f "$OUT_DIR/$ZIP_FILE_NAME" ]; do
     INCREMENTAL=$((INCREMENTAL + 1))
-    ZIP_FILE_NAME="ArtisanROM_${ROM_VERSION}_$(date +%Y%m%d)-${INCREMENTAL}_${TARGET_CODENAME}${ZIP_FILE_SUFFIX}"
+    ZIP_FILE_NAME="ParadoxUI_${ROM_VERSION}_$(date +%Y%m%d)-${INCREMENTAL}_${TARGET_CODENAME}${ZIP_FILE_SUFFIX}"
 done
 
 PRIVATE_KEY_PATH="$SRC_DIR/security/"
@@ -403,21 +411,21 @@ GENERATE_UPDATER_SCRIPT()
         echo -e "\n# --- End patching dynamic partitions ---\n"
         if $HAS_DTBO; then
             echo    'ui_print("Full Patching dtbo.img img...");'
-            echo -n 'package_extract_file("dtbo.img", '
-            GET_DEVICE_FROM_MOUNTPOINT "/dtbo"
-            echo    ');'
+            echo -n 'package_extract_file("dtbo.img", "'
+            echo -n "$TARGET_OS_BOOT_DEVICE_PATH"
+            echo    '/dtbo");'
         fi
         if $HAS_INIT_BOOT; then
             echo    'ui_print("Full Patching init_boot.img img...");'
-            echo -n 'package_extract_file("init_boot.img", '
-            GET_DEVICE_FROM_MOUNTPOINT "/init_boot"
-            echo    ');'
+            echo -n 'package_extract_file("init_boot.img", "'
+            echo -n "$TARGET_OS_BOOT_DEVICE_PATH"
+            echo    '/init_boot");'
         fi
         if $HAS_VENDOR_BOOT; then
             echo    'ui_print("Full Patching vendor_boot.img img...");'
-            echo -n 'package_extract_file("vendor_boot.img", '
-            GET_DEVICE_FROM_MOUNTPOINT "/vendor_boot"
-            echo    ');'
+            echo -n 'package_extract_file("vendor_boot.img", "'
+            echo -n "$TARGET_OS_BOOT_DEVICE_PATH"
+            echo    '/vendor_boot");'
         fi
         if $HAS_LK3RD; then
             cp -a "$SRC_DIR/prebuilts/extras/setup-boot.sh" "$TMP_DIR/setup-boot.sh"
@@ -434,15 +442,15 @@ GENERATE_UPDATER_SCRIPT()
         fi
         if ! $HAS_LK3RD && $HAS_BOOT; then
             echo    'ui_print("Installing boot image...");'
-            echo -n 'package_extract_file("boot.img", '
-            GET_DEVICE_FROM_MOUNTPOINT "/boot"
-            echo    ');'
+            echo -n 'package_extract_file("boot.img", "'
+            echo -n "$TARGET_OS_BOOT_DEVICE_PATH"
+            echo    '/boot");'
         fi
         if $HAS_UP_PARAM; then
             echo    'ui_print("Installing up_param image...");'
-            echo -n 'package_extract_file("up_param.bin", '
-            GET_DEVICE_FROM_MOUNTPOINT "/up_param"
-            echo    ');'
+            echo -n 'package_extract_file("up_param.bin", "'
+            echo -n "$TARGET_OS_BOOT_DEVICE_PATH"
+            echo    '/up_param");'
         fi
 
         if [ -f "$SRC_DIR/target/$TARGET_CODENAME/installer/install-end.edify" ]; then
@@ -460,7 +468,7 @@ GET_SUPER_GROUP_SIZE()
     local GROUP_NAME="$TARGET_SUPER_GROUP_NAME"
     GROUP_NAME="$(tr "[:lower:]" "[:upper:]" <<< "$TARGET_SUPER_GROUP_NAME")"
 
-    local VAR="TARGET_${GROUP_NAME}_SIZE"
+    local VAR="TARGET_SUPER_GROUP_SIZE"
 
     _CHECK_NON_EMPTY_PARAM "$VAR" "${!VAR}" || exit 1
 
@@ -487,11 +495,11 @@ PRINT_HEADER()
     echo    'ui_print(" ");'
     echo    'ui_print("****************************************************");'
     echo -n 'ui_print("'
-    echo -n "Welcome to ArtisanROM $ROM_CODENAME $ROM_VERSION for $TARGET_NAME!"
+    echo -n "Welcome to ParadoxUI $ROM_CODENAME $ROM_VERSION for $TARGET_NAME!"
     echo    '");'
-    echo    'ui_print("ArtisanROM developed by Android Artisan @XDAforums");'
-    echo    'ui_print("UN1CA build system coded by salvo_giangri @XDAforums");'
-    echo    'ui_print("Special thanks to all ArtisanROM Maintainers, Contribuitors and Testers");'
+    echo    'ui_print("ParadoxUI developed by MiguelBarreto7669 @XDAforums");'
+    echo    'ui_print("Initial UN1CA build system coded by salvo_giangri @XDAforums");'
+    echo    'ui_print("Special thanks to all ParadoxUI Maintainers, Contribuitors and Testers");'
     echo    'ui_print("****************************************************");'
     echo -n 'ui_print("'
     echo -n "One UI version: $ONEUI_VERSION"
@@ -503,6 +511,24 @@ PRINT_HEADER()
     echo -n "Target: $TARGET_FINGERPRINT"
     echo    '");'
     echo    'ui_print("****************************************************");'
+    echo    'ui_print("After installation, it is highly recommended to FORMAT DATA as follows:");'
+    echo    'ui_print("     Wipe -> Format Data");'
+    echo    'ui_print("Hint: FORMAT, not WIPE or FACTORY RESET!");'
+    echo    'ui_print(" ");'
+    echo    'ui_print("If you decide to not format, unexpected issues may occur and given support will be limited.");'
+    echo    'ui_print(" ");'
+    echo    'ui_print("If you wish to proceed with the installer, please press the Volume UP button.");'
+    echo    'ui_print("Otherwise, hold the Volume DOWN + POWER buttons for 7 seconds to force reboot.");'
+    echo    'assert(run_program("/sbin/sh", "-c", "while true; do getevent -lc 1 | grep -q -m1 '\''KEY_VOLUMEUP'\'' && exit 0; sleep 1; done"));'
+    echo    'ui_print("Volume UP detected. Proceeding!");'
+    echo 'ui_print("****************************************************");' 
+    echo 'ui_print("    ____                       __           __  ______");';
+    echo 'ui_print("   / __ \____ __________ _____/ /___  _  __/ / / /  _/");';
+    echo 'ui_print("  / /_/ / __ `/ ___/ __ `/ __  / __ \| |/_/ / / // /  ");';
+    echo 'ui_print(" / ____/ /_/ / /  / /_/ / /_/ / /_/ />  </ /_/ // /   ");';
+    echo 'ui_print("/_/    \__,_/_/   \__,_/\__,_/\____/_/|_|\____/___/   ");';
+    echo 'ui_print("     #DiveIntoTheParadox                              ");';
+    echo 'ui_print("****************************************************");'    
 }
 
 SIGN_IMAGE_WITH_AVB()
@@ -548,7 +574,7 @@ while IFS= read -r f; do
     PARTITION=$(basename "$f")
     IS_VALID_PARTITION_NAME "$PARTITION" || continue
 
-    "$SRC_DIR/scripts/build_fs_image.sh" "$TARGET_OS_FILE_SYSTEM_TYPE" \
+    "$SRC_DIR/scripts/build_fs_image.sh" "$TARGET_OS_FILE_SYSTEM" \
         -o "$TMP_DIR/$PARTITION.img" -m -S \
         "$WORK_DIR/$PARTITION" "$WORK_DIR/configs/file_context-$PARTITION" "$WORK_DIR/configs/fs_config-$PARTITION" || exit 1
 done < <(find "$WORK_DIR" -maxdepth 1 -type d)
@@ -573,8 +599,8 @@ while IFS= read -r f; do
     IS_VALID_PARTITION_NAME "$PARTITION" || continue
 
     LOG "- Converting $PARTITION.img to $PARTITION.new.dat"
-    EVAL "img2sdat -o \"$TMP_DIR\" -B \"$TMP_DIR/$PARTITION.map\" \"$f\"" || exit 1
-    rm -f "$f" "$TMP_DIR/$PARTITION.map"
+    EVAL "img2sdat -o \"$TMP_DIR\" \"$f\"" || exit 1
+    rm -f "$f"
 
     if ! $DEBUG; then
         LOG "- Compressing $PARTITION.new.dat"
@@ -640,7 +666,7 @@ EVAL "rm -f \"$TMP_DIR/rom.zip\"" || exit 1
 EVAL "cd \"$TMP_DIR\" && 7z a -tzip -mx=0 -mmt=$(nproc) $TMP_DIR/rom.zip -r *.patch.dat -ir!META-INF/com/android/* -i!*.new.dat -i!*.new.dat.br" || exit 1
 EVAL "cd \"$TMP_DIR\" && 7z a -tzip -mx=3 -mmt=$(nproc) $TMP_DIR/rom.zip -r * -xr!META-INF/com/android/* -x!*.new.dat -x!*.new.dat.br -x!*.patch.dat -x!rom.zip" || exit 1
 
-if ! $DEBUG || $ROM_IS_OFFICIAL; then
+if $SIGN_ZIP; then
     LOG "- Signing zip"
     EVAL "signapk -w \"$PUBLIC_KEY_PATH\" \"$PRIVATE_KEY_PATH\" \"$TMP_DIR/rom.zip\" \"$OUT_DIR/$ZIP_FILE_NAME\"" || exit 1
     rm -f "$TMP_DIR/rom.zip"
