@@ -19,33 +19,6 @@
 # [
 source "$SRC_DIR/scripts/utils/firmware_utils.sh" || exit 1
 
-# GHA runners are non-root by default, but the extraction logic assumes these
-# helpers exist. Without them, Bash invokes the bare names as commands, which
-# triggers the "command not found" error seen in CI.
-RUN_AS_ROOT()
-{
-    if [ "$(id -u)" -eq 0 ]; then
-        "$@"
-    elif command -v sudo >/dev/null 2>&1; then
-        sudo "$@"
-    else
-        LOGE "Root privileges required for privileged extraction steps"
-        return 1
-    fi
-}
-
-REQUIRE_EXTRACTION_PRIVILEGES()
-{
-    if [ "$(id -u)" -eq 0 ] || command -v sudo >/dev/null 2>&1; then
-        return 0
-    fi
-
-    LOGW "Privileged extraction requested but no sudo/root access is available"
-    return 1
-}
-
-REQUIRE_EXTRACTION_PRIVILEGES || exit 1
-
 FORCE=false
 
 FIRMWARES=()
@@ -73,7 +46,7 @@ EXTRACT_AVB_BINARIES()
         LOG "- Creating vbmeta_patched.img..."
         EVAL "cp -a \"$FW_DIR/${MODEL}_${CSC}/avb/vbmeta.img\" \"$FW_DIR/${MODEL}_${CSC}/avb/vbmeta_patched.img\"" || exit 1
         # https://android.googlesource.com/platform/system/core/+/refs/tags/android-15.0.0_r1/fastboot/fastboot.cpp#1129
-        EVAL "printf \"\\x03\" | dd of=\"$FW_DIR/${MODEL}_${CSC}/avb/vbmeta_patched.img\" bs=1 seek=123 count=1 conv=notrunc" || exit 1
+        EVAL "printf \"\x03\" | dd of=\"$FW_DIR/${MODEL}_${CSC}/avb/vbmeta_patched.img\" bs=1 seek=123 count=1 conv=notrunc" || exit 1
 
         LOG_STEP_OUT
     fi
@@ -81,7 +54,7 @@ EXTRACT_AVB_BINARIES()
 
 EXTRACT_KERNEL_BINARIES()
 {
-    local FILES="boot.img dt.img dtbo.img init_boot.img vendor_boot.img recovery.img"
+    local FILES="boot.img dtbo.img init_boot.img vendor_boot.img"
 
     LOG_STEP_IN "- Extracting kernel binaries"
 
@@ -102,7 +75,7 @@ EXTRACT_KERNEL_BINARIES()
 EXTRACT_OS_PARTITIONS()
 {
     # https://android.googlesource.com/platform/build/+/refs/tags/android-15.0.0_r1/tools/releasetools/common.py#131
-    local FILES="system.img vendor.img product.img system_ext.img odm.img vendor_dlkm.img odm_dlkm.img system_dlkm.img"
+    local FILES="system.img vendor.img product.img system_ext.img odm.img vendor_dlkm.img odm_dlkm.img system_dlkm.img optics.img prism.img"
 
     LOG_STEP_IN "- Extracting OS partitions"
 
@@ -128,14 +101,18 @@ EXTRACT_OS_PARTITIONS()
         done
 
         rm -f "$FW_DIR/${MODEL}_${CSC}/super.img"
-    else
-        for f in $FILES; do
-            EXTRACT_FILE_FROM_TAR "$AP_TAR" "$f" || exit 1
-            [ -f "$FW_DIR/${MODEL}_${CSC}/$f" ] || continue
-            UNSPARSE_IMAGE "$FW_DIR/${MODEL}_${CSC}/$f" || exit 1
-            STORE_OS_PARTITION_METADATA "$FW_DIR/${MODEL}_${CSC}/$f"
-        done
     fi
+    for f in $FILES; do
+        [ -f "$FW_DIR/${MODEL}_${CSC}/$f" ] && continue
+        if FILE_EXISTS_IN_TAR "$AP_TAR" "$f".lz4; then
+            EXTRACT_FILE_FROM_TAR "$AP_TAR" "$f" || exit 1
+        elif FILE_EXISTS_IN_TAR "$CSC_TAR" "$f".lz4; then
+            EXTRACT_FILE_FROM_TAR "$CSC_TAR" "$f" || exit 1
+        fi
+        [ -f "$FW_DIR/${MODEL}_${CSC}/$f" ] || continue
+        UNSPARSE_IMAGE "$FW_DIR/${MODEL}_${CSC}/$f" || exit 1
+        STORE_OS_PARTITION_METADATA "$FW_DIR/${MODEL}_${CSC}/$f"
+    done
 
     local PARTITION
     for f in $FILES; do
@@ -143,25 +120,31 @@ EXTRACT_OS_PARTITIONS()
 
         [ -f "$FW_DIR/${MODEL}_${CSC}/$f" ] || continue
 
-        REQUIRE_EXTRACTION_PRIVILEGES || exit 1
+        if ! sudo -n -v &> /dev/null; then
+            LOG "\033[0;33m! Asking user for sudo password\033[0m"
+            if ! sudo -v 2> /dev/null; then
+                LOGE "Root permissions are required to unpack OS partitions"
+                exit 1
+            fi
+        fi
 
         LOG "- Unpacking $(basename "$f")..."
 
         mkdir -p "$FW_DIR/${MODEL}_${CSC}/$PARTITION"
-        RUN_AS_ROOT umount "$FW_DIR/${MODEL}_${CSC}/$f" &> /dev/null
+        sudo umount "$FW_DIR/${MODEL}_${CSC}/$f" &> /dev/null
         if [[ "$(GET_IMAGE_FILE_SYSTEM "$FW_DIR/${MODEL}_${CSC}/$f")" == "erofs" ]]; then
-            EVAL "RUN_AS_ROOT env \"PATH=$PATH\" fuse.erofs \"$FW_DIR/${MODEL}_${CSC}/$f\" \"$TMP_DIR\"" || exit 1
+            EVAL "sudo env \"PATH=$PATH\" fuse.erofs \"$FW_DIR/${MODEL}_${CSC}/$f\" \"$TMP_DIR\"" || exit 1
         else
-            EVAL "RUN_AS_ROOT mount -o ro \"$FW_DIR/${MODEL}_${CSC}/$f\" \"$TMP_DIR\"" || exit 1
+            EVAL "sudo mount -o ro \"$FW_DIR/${MODEL}_${CSC}/$f\" \"$TMP_DIR\"" || exit 1
         fi
-        EVAL "RUN_AS_ROOT cp -a -T \"$TMP_DIR\" \"$FW_DIR/${MODEL}_${CSC}/$PARTITION\"" || exit 1
-        RUN_AS_ROOT chown -hR "$(whoami):$(whoami)" "$FW_DIR/${MODEL}_${CSC}/$PARTITION"
+        EVAL "sudo cp -a -T \"$TMP_DIR\" \"$FW_DIR/${MODEL}_${CSC}/$PARTITION\"" || exit 1
+        sudo chown -hR "$(whoami):$(whoami)" "$FW_DIR/${MODEL}_${CSC}/$PARTITION"
         [ -d "$FW_DIR/${MODEL}_${CSC}/$PARTITION/lost+found" ] && rm -rf "$FW_DIR/${MODEL}_${CSC}/$PARTITION/lost+found"
 
         LOG "- Generating fs_config/file_context for $(basename "$f")..."
 
-        EVAL "RUN_AS_ROOT find \"$TMP_DIR\" | RUN_AS_ROOT xargs -I \"{}\" -P \"$(nproc)\" stat -c \"%n %u %g %a capabilities=0x0\" \"{}\" > \"$FW_DIR/${MODEL}_${CSC}/fs_config-$PARTITION\"" || exit 1
-        EVAL "RUN_AS_ROOT find \"$TMP_DIR\" | RUN_AS_ROOT xargs -I \"{}\" -P \"$(nproc)\" sh -c 'echo \"\$1 \$(getfattr -n security.selinux --only-values -h --absolute-names \"\$1\")\"' \"sh\" \"{}\" > \"$FW_DIR/${MODEL}_${CSC}/file_context-$PARTITION\"" || exit 1
+        EVAL "sudo find \"$TMP_DIR\" | sudo xargs -I \"{}\" -P \"$(nproc)\" stat -c \"%n %u %g %a capabilities=0x0\" \"{}\" > \"$FW_DIR/${MODEL}_${CSC}/fs_config-$PARTITION\"" || exit 1
+        EVAL "sudo find \"$TMP_DIR\" | sudo xargs -I \"{}\" -P \"$(nproc)\" sh -c 'echo \"\$1 \$(getfattr -n security.selinux --only-values -h --absolute-names \"\$1\")\"' \"sh\" \"{}\" > \"$FW_DIR/${MODEL}_${CSC}/file_context-$PARTITION\"" || exit 1
         sort -o "$FW_DIR/${MODEL}_${CSC}/fs_config-$PARTITION" "$FW_DIR/${MODEL}_${CSC}/fs_config-$PARTITION"
         sort -o "$FW_DIR/${MODEL}_${CSC}/file_context-$PARTITION" "$FW_DIR/${MODEL}_${CSC}/file_context-$PARTITION"
         # https://source.android.com/docs/core/architecture/partitions/system-as-root
@@ -183,7 +166,7 @@ EXTRACT_OS_PARTITIONS()
                 sed -i "$(sed -n "/simpleperf_app_runner/=" "$FW_DIR/${MODEL}_${CSC}/fs_config-system") s/0x0/0xc0/g" "$FW_DIR/${MODEL}_${CSC}/fs_config-system"
         fi
 
-        EVAL "RUN_AS_ROOT umount \"$TMP_DIR\"" || exit 1
+        EVAL "sudo umount \"$TMP_DIR\"" || exit 1
         rm -f "$FW_DIR/${MODEL}_${CSC}/$f"
     done
 
@@ -195,8 +178,10 @@ GET_IMAGE_FILE_SYSTEM()
     # https://android.googlesource.com/platform/external/e2fsprogs/+/refs/tags/android-15.0.0_r1/lib/ext2fs/ext2_fs.h#83
     if [[ "$(READ_BYTES_AT "$1" "1080" "2")" == "ef53" ]]; then
         echo "ext4"
+    # https://android.googlesource.com/platform/external/f2fs-tools/+/refs/tags/android-15.0.0_r1/include/f2fs_fs.h#395
     elif [[ "$(READ_BYTES_AT "$1" "1024" "4")" == "f2f52010" ]]; then
         echo "f2fs"
+    # https://android.googlesource.com/platform/external/erofs-utils/+/refs/tags/android-15.0.0_r1/include/erofs_fs.h#12
     elif [[ "$(READ_BYTES_AT "$1" "1024" "4")" == "e0f5e1e2" ]]; then
         echo "erofs"
     fi
@@ -262,7 +247,7 @@ STORE_KERNEL_IMAGE_METADATA()
     local FILE="$1"
 
     if [ ! -f "$FILE" ]; then
-        LOGE "File not found: ${FILE//$SRC_DIR\//}"
+        LOGE "File not found: ${TAR//$SRC_DIR\//}"
         exit 1
     fi
 
@@ -270,14 +255,15 @@ STORE_KERNEL_IMAGE_METADATA()
         echo "partition_size=$(wc -c "$FILE" | cut -d " " -f 1)" >> "$FW_DIR/${MODEL}_${CSC}/${f}_metadata.txt"
     fi
 
-    if [[ "$f" == *"boot.img" ]] || [[ "$f" == "recovery.img" ]]; then
+    if [[ "$f" == *"boot.img" ]]; then
         local INFO
         INFO="$(unpack_bootimg --boot_img "$FW_DIR/${MODEL}_${CSC}/kernel/$f" --out "$TMP_DIR" 2>&1)"
+        # shellcheck disable=SC2181
         if [ $? -ne 0 ]; then
             EVAL "unpack_bootimg --boot_img \"$FW_DIR/${MODEL}_${CSC}/kernel/$f\" --out \"$TMP_DIR\""
             exit 1
         fi
-        rm -rf "${TMP_DIR:?}/"*
+        rm -rf "$TMP_DIR/"*
 
         while IFS= read -r l; do
             if [[ "$l" == *"command line args"* ]]; then
@@ -340,7 +326,7 @@ STORE_OS_PARTITION_METADATA()
     local FILE="$1"
 
     if [ ! -f "$FILE" ]; then
-        LOGE "File not found: ${FILE//$SRC_DIR\//}"
+        LOGE "File not found: ${TAR//$SRC_DIR\//}"
         exit 1
     fi
 
@@ -350,6 +336,7 @@ STORE_OS_PARTITION_METADATA()
     if [[ "$FILE" == *"super.img" ]]; then
         local LPDUMP
         LPDUMP="$(lpdump "$FILE" 2>&1)"
+        # shellcheck disable=SC2181
         if [ $? -ne 0 ]; then
             EVAL "lpdump \"$FILE\""
             exit 1
@@ -383,8 +370,8 @@ for i in "${FIRMWARES[@]}"; do
 
     LATEST_FIRMWARE="$(GET_LATEST_FIRMWARE "$MODEL" "$CSC")"
     if [ ! "$LATEST_FIRMWARE" ]; then
-        LOGE "Latest available firmware could not be fetched"
-        exit 1
+        LOGW "Latest available firmware could not be fetched"
+        #exit 1
     fi
 
     LOG_STEP_IN "- Processing $MODEL firmware with $CSC CSC"
@@ -395,6 +382,7 @@ for i in "${FIRMWARES[@]}"; do
     LOG_STEP_IN
 
     if ! $FORCE; then
+        # Skip if firmware has been extracted
         if [ -f "$FW_DIR/${MODEL}_${CSC}/.extracted" ]; then
             if ! COMPARE_SEC_BUILD_VERSION "$(cat "$FW_DIR/${MODEL}_${CSC}/.extracted")" "$LATEST_FIRMWARE"; then
                 if [ -f "$ODIN_DIR/${MODEL}_${CSC}/.downloaded" ] && \
@@ -412,6 +400,7 @@ for i in "${FIRMWARES[@]}"; do
         fi
     fi
 
+    # Abort if firmware has not been downloaded
     if [ ! -f "$ODIN_DIR/${MODEL}_${CSC}/.downloaded" ]; then
         LOG "\033[0;31m! The firmware has not been downloaded\033[0m"
         exit 1
@@ -424,6 +413,7 @@ for i in "${FIRMWARES[@]}"; do
 
     BL_TAR="$(find "$ODIN_DIR/${MODEL}_${CSC}" -name "BL_$(cut -d "/" -f 1 -s <<< "$DOWNLOADED_FIRMWARE")*.md5" | sort -r | head -n 1)"
     AP_TAR="$(find "$ODIN_DIR/${MODEL}_${CSC}" -name "AP_$(cut -d "/" -f 1 -s <<< "$DOWNLOADED_FIRMWARE")*.md5" | sort -r | head -n 1)"
+    CSC_TAR="$(find "$ODIN_DIR/${MODEL}_${CSC}" -name "CSC_*.md5" | sort -r | head -n 1)"
 
     if [ ! "$BL_TAR" ]; then
         LOG "\033[0;31m! No BL tar found\033[0m"
