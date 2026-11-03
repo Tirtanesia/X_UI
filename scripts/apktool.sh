@@ -34,6 +34,10 @@ THREAD_COUNT=$(awk -v max="$(nproc)" '/MemTotal/ {
   tc = int(($2 + 1048575) / 2097152);
   print (tc < 1 ? 1 : (tc > max ? max : tc));
 }' /proc/meminfo)
+    if [ -n "$GITHUB_ACTIONS" ]; then
+    THREAD_COUNT="1"
+    fi
+
 
 BUILD()
 {
@@ -49,7 +53,7 @@ BUILD()
     cp -a "$OUTPUT_PATH/original/META-INF" "$OUTPUT_PATH/build/apk/META-INF"
 
     # Build APK with --shorten-resource-paths (https://developer.android.com/tools/aapt2#optimize_options)
-    EVAL "apktool b -j \"$THREAD_COUNT\" -p \"$FRAMEWORK_DIR\" \"$OUTPUT_PATH\"" || exit 1
+    EVAL "apktool -JXmx2560m b -j \"$THREAD_COUNT\" -p \"$FRAMEWORK_DIR\" \"$OUTPUT_PATH\"" || exit 1
 
     local FILE_NAME
     FILE_NAME="$(basename "$INPUT_FILE")"
