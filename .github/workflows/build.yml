@@ -108,7 +108,7 @@ jobs:
         run: |
           chmod +x scripts/internal/build_odin_package.sh
           source ./buildenv.sh ${{ matrix.target }}
-          yes A | ./scripts/make_rom.sh --force
+          ./scripts/make_rom.sh --force
           
       - name: Upload ROM Artifact
         uses: actions/upload-artifact@v4
