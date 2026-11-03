@@ -259,6 +259,7 @@ trap 'echo' INT
 
 if $BUILD_ROM; then
     [ -d "$APKTOOL_DIR" ] && rm -rf "$APKTOOL_DIR"
+    [ -f "$WORK_DIR/.completed" ] && rm -f "$WORK_DIR/.completed"
 
     if [ ! -f "$FW_DIR/$SOURCE_FIRMWARE_PATH/.extracted" ] || [ ! -f "$FW_DIR/$TARGET_FIRMWARE_PATH/.extracted" ]; then
         if [ ! -f "$ODIN_DIR/$SOURCE_FIRMWARE_PATH/.downloaded" ] || [ ! -f "$ODIN_DIR/$TARGET_FIRMWARE_PATH/.downloaded" ]; then
