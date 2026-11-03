@@ -1,20 +1,6 @@
 #!/usr/bin/env bash
-#
-# Copyright (C) 2025 Salvo Giangreco
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
+# Copyright (c) 2025 Salvo Giangreco
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 # [
 source "$SRC_DIR/scripts/utils/build_utils.sh" || exit 1
@@ -23,17 +9,14 @@ FRAMEWORK_DIR="$TOOLS_DIR/apktool/framework"
 FRAMEWORK_TAG="$(GET_PROP "system" "ro.build.version.incremental")"
 
 FORCE=false
+JOBS="1"
 PARTITION=""
 FILE=""
 
+HEAP_SIZE=""
+THREAD_COUNT=""
 INPUT_FILE=""
 OUTPUT_PATH=""
-ARGS=""
-
-THREAD_COUNT=$(awk -v max="$(nproc)" '/MemTotal/ {
-  tc = int(($2 + 1048575) / 2097152);
-  print (tc < 1 ? 1 : (tc > max ? max : tc));
-}' /proc/meminfo)
 
 BUILD()
 {
@@ -49,7 +32,7 @@ BUILD()
     cp -a "$OUTPUT_PATH/original/META-INF" "$OUTPUT_PATH/build/apk/META-INF"
 
     # Build APK with --shorten-resource-paths (https://developer.android.com/tools/aapt2#optimize_options)
-    EVAL "apktool b -j \"$THREAD_COUNT\" -p \"$FRAMEWORK_DIR\" \"$OUTPUT_PATH\"" || exit 1
+    EVAL "apktool -JXmx${HEAP_SIZE}m b -j \"$THREAD_COUNT\" -p \"$FRAMEWORK_DIR\" -srp \"$OUTPUT_PATH\"" || exit 1
 
     local FILE_NAME
     FILE_NAME="$(basename "$INPUT_FILE")"
@@ -102,130 +85,20 @@ DECODE()
     fi
 
     LOG "- Decoding ${INPUT_FILE//$WORK_DIR/}"
-    # Decode with resources (no -r) for APKs whose mods ship res/ payloads.
-    # SecSettings/SecSetupWizard mods inject res XML and require aapt2 to
-    # rebuild a complete resources.arsc; decoding them with -r drops every
-    # original resource and yields a broken APK.
-    ARGS="-r"
-    if [[ "$INPUT_FILE" == *rro_*.apk ]] || \
-       [[ "$INPUT_FILE" == *SecSettings.apk ]] || \
-       [[ "$INPUT_FILE" == *SecSetupWizard_Global.apk ]] || \
-       [[ "$INPUT_FILE" == *app/DAAgent/DAAgent.apk ]]; then
-        ARGS=""
-    fi
 
     # Decode APK with --no-debug-info, which will disassemble DEX file with the following flags:
     # - Disabled synthetic accessors comments
     # - Disabled debug info
     # - Use .locals directive instead of the .registers one
     # - Use a sequential numbering scheme for labels
-    #
-    # Apktool 3.x enumerates every DEX embedded in a ZIP entry, so containers
-    # holding multiple logical DEX (e.g. services.jar on One UI 8.x) decode into
-    # smali/ plus smali_classesN/ without losing classes.
-    EVAL "apktool d --no-debug-info -j \"$THREAD_COUNT\" -o \"$OUTPUT_PATH\" -p \"$FRAMEWORK_DIR\" -t \"$FRAMEWORK_TAG\" $ARGS \"$INPUT_FILE\"" || exit 1
-
-    EXPECTED_CLASS_COUNT="$(count_dex_classes "$INPUT_FILE")"
-    if [ "$EXPECTED_CLASS_COUNT" -gt 0 ]; then
-        local DECODED_CLASS_COUNT
-        DECODED_CLASS_COUNT="$(find "$OUTPUT_PATH" -type f -name '*.smali' | wc -l)"
-        if [ "$DECODED_CLASS_COUNT" -ne "$EXPECTED_CLASS_COUNT" ]; then
-            LOGE "Incomplete decode for ${INPUT_FILE//$WORK_DIR/}: expected $EXPECTED_CLASS_COUNT classes, found $DECODED_CLASS_COUNT"
-            exit 1
-        fi
-    fi
-
-    # https://github.com/iBotPeaches/Apktool/issues/3615
-    if [[ "$INPUT_FILE" == *"framework.jar" ]]; then
-        if unzip -l "$INPUT_FILE" | grep -q "debian.mime.types"; then
-            unzip -q "$INPUT_FILE" "res/*" -d "$OUTPUT_PATH/unknown"
-        fi
-    fi
-}
-
-# count_dex_classes <file>
-# Sums class_defs_size over every DEX stored in <file>, walking the logical DEX
-# chain inside each ZIP entry. Containers pack multiple DEX back to back, so a
-# single entry can hold more than one header.
-count_dex_classes()
-{
-    local FILE="$1"
-    local TOTAL=0
-    local DEX
-    local TMP
-    local CONTAINER_SIZE
-    local OFFSET
-    local FILE_SIZE
-    local CLASS_COUNT
-
-    while IFS= read -r DEX; do
-        TMP="$(mktemp)"
-        if ! unzip -p "$FILE" "$DEX" > "$TMP" 2> /dev/null; then
-            rm -f "$TMP"
-            continue
-        fi
-
-        CONTAINER_SIZE="$(stat -c %s "$TMP")"
-        OFFSET=0
-        while [ "$OFFSET" -lt "$CONTAINER_SIZE" ]; do
-            CLASS_COUNT="$(od -An -tu4 --endian=little \
-                -j $((OFFSET + 96)) -N 4 "$TMP" 2> /dev/null | tr -d ' ')"
-            [ "$CLASS_COUNT" ] || CLASS_COUNT="0"
-            TOTAL=$((TOTAL + CLASS_COUNT))
-
-            FILE_SIZE="$(od -An -tu4 --endian=little \
-                -j $((OFFSET + 32)) -N 4 "$TMP" 2> /dev/null | tr -d ' ')"
-            [ "$FILE_SIZE" -gt 0 ] 2> /dev/null || break
-            OFFSET=$((OFFSET + FILE_SIZE))
-        done
-        rm -f "$TMP"
-    done < <(zipinfo -1 "$FILE" 2> /dev/null | grep -E '^classes([0-9]+)?\.dex$')
-
-    echo "$TOTAL"
-}
-
-# https://github.com/google/smali/blob/3.0.9/dexlib2/src/main/java/com/android/tools/smali/dexlib2/VersionMap.java#L36-L53
-DEX_TO_API()
-{
-    local DEX_FILE="$1"
-
-    local DEX_VERSION
-    DEX_VERSION="$(READ_BYTES_AT "$DEX_FILE" "6" "1")"
-
-    local API
-    case "$DEX_VERSION" in
-        "31")
-            API="21"
-            ;;
-        "35")
-            API="23"
-            ;;
-        "37")
-            API="25"
-            ;;
-        "38")
-            API="27"
-            ;;
-        "39")
-            API="29"
-            ;;
-        "40")
-            API="34"
-            ;;
-        "41")
-            API="35"
-            ;;
-        *)
-            LOGW "Unknown DEX format version ($DEX_VERSION). Using API 33 as fallback."
-            API="33"
-            ;;
-    esac
-
-    echo "$API"
+    EVAL "apktool -JXmx${HEAP_SIZE}m d --no-debug-info -j \"$THREAD_COUNT\" -o \"$OUTPUT_PATH\" -p \"$FRAMEWORK_DIR\" -t \"$FRAMEWORK_TAG\" \"$INPUT_FILE\"" || exit 1
 }
 
 PREPARE_SCRIPT()
 {
+    local MEM_TOTAL_MB
+    local MAX_THREADS
+
     if [[ "$#" == 0 ]]; then
         PRINT_USAGE
         exit 1
@@ -240,9 +113,49 @@ PREPARE_SCRIPT()
 
     shift
 
-    if [[ "$1" == "--force" ]] || [[ "$1" == "-f" ]]; then
-        FORCE=true
+    while [[ "$1" == "-"* ]]; do
+        if [[ "$1" == "--force" ]] || [[ "$1" == "-f" ]]; then
+            FORCE=true
+        elif [[ "$1" == "--jobs" ]] || [[ "$1" == "-j" ]]; then
+            shift; JOBS="$1"
+            if ! [[ "$JOBS" =~ ^[1-9][0-9]*$ ]]; then
+                LOGE "Jobs number not valid: $JOBS"
+                exit 1
+            fi
+        else
+            LOGE "Unknown option: $1"
+            exit 1
+        fi
+
         shift
+    done
+
+    MEM_TOTAL_MB="$(awk '/MemTotal/ { print int($2 / 1024) }' /proc/meminfo)"
+
+    if [ "$JOBS" -gt "1" ]; then
+        # Split 3/4 of total system memory between the requested instances
+        HEAP_SIZE="$(bc -l <<< "scale=0; (($MEM_TOTAL_MB * 3) / 4) / $JOBS")"
+        [ "$HEAP_SIZE" -lt "1024" ] && HEAP_SIZE="1024"
+
+        MAX_THREADS="$(bc -l <<< "scale=0; $(nproc) / $JOBS")"
+        [ "$MAX_THREADS" -lt "1" ] && MAX_THREADS="1"
+        [ -n "$GITHUB_ACTIONS" ] && MAX_THREADS="1"
+
+        # Do not use more threads than half the heap in GB
+        THREAD_COUNT="$(bc -l <<< "scale=0; $HEAP_SIZE / (1024 * 2)")"
+        [ "$THREAD_COUNT" -gt "$MAX_THREADS" ] && THREAD_COUNT="$MAX_THREADS"
+        [ "$THREAD_COUNT" -lt "1" ] && THREAD_COUNT="1"
+    else
+        # https://github.com/iBotPeaches/Apktool/blob/main/scripts/linux/apktool#L61
+        HEAP_SIZE="1024"
+
+        MAX_THREADS="$(nproc)"
+        [ -n "$GITHUB_ACTIONS" ] && MAX_THREADS="1"
+
+        # Do not use more threads than half the total system memory in GB
+        THREAD_COUNT="$(bc -l <<< "scale=0; $MEM_TOTAL_MB / (1024 * 2)")"
+        [ "$THREAD_COUNT" -gt "$MAX_THREADS" ] && THREAD_COUNT="$MAX_THREADS"
+        [ "$THREAD_COUNT" -lt "1" ] && THREAD_COUNT="1"
     fi
 
     PARTITION="$1"
@@ -280,6 +193,7 @@ PREPARE_SCRIPT()
             ;;
     esac
     FILE_PATH+="/$FILE"
+
     INPUT_FILE="$FILE_PATH"
     OUTPUT_PATH="$APKTOOL_DIR/$PARTITION/${FILE//system\//}"
 }
@@ -288,6 +202,7 @@ PRINT_USAGE()
 {
     echo "Usage: apktool d[ecode]/b[uild] [options] <partition> <file>" >&2
     echo " -f, --force : Force delete output directory" >&2
+    echo " -j, --jobs : Specify the number of concurrent instances" >&2
 }
 # ]
 
@@ -298,17 +213,7 @@ PREPARE_SCRIPT "$@"
 if [ ! "$FRAMEWORK_TAG" ]; then
     LOGE "Work dir needs to be set up before using this script"
     exit 1
-fi
-
-if [ -d "$FRAMEWORK_DIR" ]; then
-    while IFS= read -r stale; do
-        LOGW "Removing stale framework: ${stale##*/}"
-        rm -f "$stale"
-    done < <(find "$FRAMEWORK_DIR" -maxdepth 1 -type f -name "1-*.apk" \
-        ! -name "1-$FRAMEWORK_TAG.apk")
-fi
-
-if [ ! -f "$FRAMEWORK_DIR/1-$FRAMEWORK_TAG.apk" ]; then
+elif [ ! -f "$FRAMEWORK_DIR/1-$FRAMEWORK_TAG.apk" ]; then
     LOGW "framework-res.apk for \"$FRAMEWORK_TAG\" not found, installing"
     EVAL "apktool if -p \"$FRAMEWORK_DIR\" -t \"$FRAMEWORK_TAG\" \"$WORK_DIR/system/system/framework/framework-res.apk\"" || exit 1
 fi
@@ -323,4 +228,5 @@ case "$ACTION" in
 esac
 
 exit 0
+
 
