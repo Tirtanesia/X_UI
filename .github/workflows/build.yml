@@ -1,4 +1,4 @@
-name: Build Arktik
+name: Build Moon
 
 on:
   workflow_dispatch:
@@ -88,7 +88,7 @@ jobs:
           ./scripts/download_fw.sh --force --ignore-source
           ./scripts/extract_fw.sh --force --ignore-source
           
-      - name: Build ROMLotus
+      - name: Build Moon
         shell: bash
         run: |
           chmod +x scripts/internal/build_odin_package.sh
@@ -103,7 +103,7 @@ jobs:
             out/*.tar*
             out/*.zip*
 
-      - name: Upload ROMLotus
+      - name: Upload Moon
         env:
           PIXELDRAIN_API_KEY: ${{ secrets.PIXELDRAIN_API_KEY }}
         run: |
