@@ -34,6 +34,12 @@ jobs:
         with:
           retain: 'compiler_cmake'
 
+      - name: Fix Script Permissions
+        run: |
+          chmod +x scripts/apktool.sh
+          chmod +x scripts/*.sh
+          chmod -R +x scripts/utils/
+
       - name: Set up build environment
         run: |
           set -euxo pipefail
