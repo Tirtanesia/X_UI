@@ -107,10 +107,9 @@ jobs:
       - name: Extract target firmware
         run: |
           source ./buildenv.sh ${{ matrix.target }}
-          ./scripts/make_rom.sh --force
-          --ignore-source
+          ./scripts/extract_fw.sh --force --ignore-source
 
-      - name: Build 
+      - name: Build
         run: |
           chmod +x scripts/internal/build_odin_package.sh
           source ./buildenv.sh ${{ matrix.target }}
