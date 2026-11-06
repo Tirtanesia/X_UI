@@ -1,4 +1,4 @@
-name: Build M4
+name: Build Nebula
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-       target: [c1s]
+        target: [c1s]
 
     steps:
       - name: Checkout repo
@@ -34,41 +34,30 @@ jobs:
         with:
           retain: 'compiler_cmake'
 
-      - name: Fix Script Permissions
-        run: |
-          chmod +x scripts/apktool.sh
-          chmod +x scripts/*.sh
-          chmod -R +x scripts/utils/
-
       - name: Set up build environment
         run: |
-          set -euxo pipefail
+         sudo apt update
+          DEBIAN_FRONTEND=noninteractive sudo apt install -yq \
+            attr ccache clang ffmpeg libbrotli-dev libbz2-dev \
+            libgtest-dev libprotobuf-dev libunwind-dev libpcre2-dev \
+            libzstd-dev linux-modules-extra-$(uname -r) lld protobuf-compiler webp \
+            build-essential g++-aarch64-linux-gnu gcc-aarch64-linux-gnu \
+            python-is-python3 python3 wget curl
 
-          sudo apt-get update
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source "$HOME/.cargo/env"
 
-          KERNEL_VERSION="$(uname -r)"
-          KERNEL_MOD_EXTRA="linux-modules-extra-${KERNEL_VERSION}"
+          rustc --version
+          cargo --version
 
-          if apt-cache show "$KERNEL_MOD_EXTRA" >/dev/null 2>&1; then
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq "$KERNEL_MOD_EXTRA"
-          else
-          echo "::warning::Package $KERNEL_MOD_EXTRA is not available on this runner; skipping it."
-          fi
-
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq \
-          attr ccache clang ffmpeg libbrotli-dev libbz2-dev \
-          libgtest-dev libprotobuf-dev libunwind-dev libpcre2-dev \
-          libzstd-dev lld protobuf-compiler webp \
-          build-essential g++-aarch64-linux-gnu gcc-aarch64-linux-gnu \
-          python-is-python3 python3 wget curl golang-go pcre2-utils    
           wget https://raw.githubusercontent.com/kdrag0n/kramflash/refs/heads/master/mkbootimg.py && sudo ln -sf $(pwd)/mkbootimg.py /usr/bin/mkbootimg && chmod +x /usr/bin/mkbootimg
+
           sudo modprobe erofs f2fs
+
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          echo -n "${{ secrets.PLATFORM_KEY_PK8 }}" | base64 --decode > security/artisanrom_platform.pk8
-          echo -n "${{ secrets.PLATFORM_KEY_PEM }}" | base64 --decode > security/artisanrom_platform.x509.pem
-          echo -n "${{ secrets.OTA_KEY_PK8 }}" | base64 --decode > security/artisanrom_ota.pk8
-          echo -n "${{ secrets.OTA_KEY_PEM }}" | base64 --decode > security/artisanrom_ota.x509.pem
+          echo -n "${{ secrets.PLATFORM_KEY_PK8 }}" | base64 --decode > security/monsterrom_platform.pk8
+          echo -n "${{ secrets.PLATFORM_KEY_PEM }}" | base64 --decode > security/monsterrom_platform.x509.pem
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
@@ -77,22 +66,15 @@ jobs:
           java-version: '21'
           cache: 'gradle'
 
-      - name: Install Latest Rust Toolchain
-        uses: dtolnay/rust-toolchain@stable
-
       - name: Build dependencies
         run: |
-          chmod -R +x scripts/internal/
           source ./buildenv.sh ${{ matrix.target }}
           ./scripts/build_dependencies.sh
 
-      - name: Download stock firmwares
-        uses: nick-fields/retry@v4
-        with:
-          timeout_minutes: 60
-          max_attempts: 3
-          retry_on: error
-          command: source ./buildenv.sh ${{ matrix.target }} && ./scripts/download_fw.sh
+      - name: Download source firmware
+        run: |
+          source ./buildenv.sh ${{ matrix.target }}
+          ./scripts/download_fw.sh --force --ignore-target
 
       - name: Extract source firmware
         run: |
@@ -109,16 +91,16 @@ jobs:
           source ./buildenv.sh ${{ matrix.target }}
           ./scripts/extract_fw.sh --force --ignore-source
 
-      - name: Build
+      - name: Build ROM
         run: |
           chmod +x scripts/internal/build_odin_package.sh
           source ./buildenv.sh ${{ matrix.target }}
           ./scripts/make_rom.sh --force
-          
+
       - name: Upload ROM Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: M4-${{ matrix.target }}
+          name: ParadoxUI-${{ matrix.target }}
           path: |
             out/*.tar*
             out/*.zip*
