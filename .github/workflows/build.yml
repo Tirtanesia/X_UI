@@ -99,6 +99,8 @@ jobs:
       - name: Build ROM
         run: |
           chmod +x scripts/internal/build_odin_package.sh
+          chmod +x scripts/apktool.sh
+          chmod +x scripts/utils/module_utils.sh
           source ./buildenv.sh ${{ matrix.target }}
           ./scripts/make_rom.sh --force
 
