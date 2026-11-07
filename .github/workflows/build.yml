@@ -60,7 +60,10 @@ jobs:
           cache: 'gradle'
 
       - name: Install Rust Toolchain
-        uses: actions-rust-lang/setup-rusttoolchain@v1
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          targets: aarch64-unknown-linux-gnu
+
 
       - name: Build dependencies
         run: |
