@@ -12,7 +12,7 @@ system/lib64/libDualCamBokehCapture.camera.samsung.so
 "
 for blob in $BLOBS_LIST
 do
-    DELETE_FROM_WORK_DIR "$blob" &
+    DELETE_FROM_WORK_DIR "system" "$blob" &
 done
 
 # shellcheck disable=SC2046
