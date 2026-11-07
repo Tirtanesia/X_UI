@@ -61,6 +61,7 @@ jobs:
 
       - name: Build dependencies
         run: |
+          chmod +x scripts/internal/gen_config_file.sh
           source ./buildenv.sh ${{ matrix.target }}
           ./scripts/build_dependencies.sh
 
