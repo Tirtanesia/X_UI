@@ -59,6 +59,9 @@ jobs:
           java-version: '21'
           cache: 'gradle'
 
+      - name: Install Rust Toolchain
+        uses: actions-rust-lang/setup-rusttoolchain@v1
+
       - name: Build dependencies
         run: |
           chmod +x scripts/internal/gen_config_file.sh
