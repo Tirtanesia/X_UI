@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# ParadoxUI configuration file for Snapdragon devices (qssi)
+# ParadoxUI configuration file for Exynos devices (essi)
 
 # Galaxy S26+  (One UI 8.5)
 SOURCE_CODENAME="m2s"
