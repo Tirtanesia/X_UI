@@ -37,12 +37,23 @@ jobs:
       - name: Set up build environment
         run: |
           sudo apt update
+          
           DEBIAN_FRONTEND=noninteractive sudo apt install -yq \
             attr ccache clang ffmpeg libbrotli-dev libbz2-dev \
             libgtest-dev libprotobuf-dev libunwind-dev libpcre2-dev \
-            libzstd-dev linux-modules-extra-$(uname -r) lld protobuf-compiler webp \
-            build-essential g++-aarch64-linux-gnu gcc-aarch64-linux-gnu python-is-python3 python3 wget
-          wget https://raw.githubusercontent.com/kdrag0n/kramflash/refs/heads/master/mkbootimg.py && sudo ln -sf $(pwd)/mkbootimg.py /usr/bin/mkbootimg && chmod +x /usr/bin/mkbootimg
+            libzstd-dev lld protobuf-compiler webp \
+            build-essential g++-aarch64-linux-gnu gcc-aarch64-linux-gnu \
+            python-is-python3 python3 wget
+
+          KERNEL_VERSION=$(uname -r)
+          if [ "$(echo $KERNEL_VERSION | cut -d. -f1)" -lt 7 ]; then
+            sudo apt install -y linux-modules-extra-$KERNEL_VERSION
+          else
+            echo "Versi kernel 7+, paket linux-modules-extra dilewati karena sudah bawaan."
+          fi
+
+          wget https://githubusercontent.com && sudo ln -sf $(pwd)/mkbootimg.py /usr/bin/mkbootimg && chmod +x /usr/bin/mkbootimg
+
           sudo modprobe erofs f2fs
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
