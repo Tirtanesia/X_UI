@@ -52,7 +52,7 @@ jobs:
             echo "Versi kernel 7+, paket linux-modules-extra dilewati karena sudah bawaan."
           fi
 
-          wget https://githubusercontent.com && sudo ln -sf $(pwd)/mkbootimg.py /usr/bin/mkbootimg && chmod +x /usr/bin/mkbootimg
+          wget https://raw.githubusercontent.com/kdrag0n/kramflash/refs/heads/master/mkbootimg.py && sudo ln -sf $(pwd)/mkbootimg.py /usr/bin/mkbootimg && chmod +x /usr/bin/mkbootimg
 
           sudo modprobe erofs f2fs
           git config --global user.name "github-actions[bot]"
