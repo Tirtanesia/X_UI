@@ -129,25 +129,19 @@ jobs:
             out/*.tar*
             out/*.zip*
 
-      - name: Upload c1s ROM to Pixeldrain
+      - name: Upload Lotus-X
         env:
           PIXELDRAIN_API_KEY: ${{ secrets.PIXELDRAIN_API_KEY }}
         run: |
-          shopt -s nullglob
-          rom_files=(out/*.zip)
-          if (( ${#rom_files[@]} == 0 )); then
-            echo "::error::No ROM ZIP found in out/."
+          # Mencari file ZIP di dalam folder out/ hasil build
+          ROM_FILE=$(ls out/*.zip | head -n 1)
+          
+          if [ -z "$ROM_FILE" ]; then
+            echo "Error: File ZIP tidak ditemukan di folder out/"
             exit 1
           fi
-
-          if [[ -z "$PIXELDRAIN_API_KEY" ]]; then
-            echo "::notice::PIXELDRAIN_API_KEY is not configured; the GitHub artifact is still available. Skipping Pixeldrain upload."
-            exit 0
-          fi
-
-          ROM_FILE="${rom_files[0]}"
-          echo "Uploading ${ROM_FILE} to Pixeldrain..."
-          curl --fail-with-body --silent --show-error --retry 3 \
-            -u ":$PIXELDRAIN_API_KEY" \
-            -F "file=@$ROM_FILE" \
-            https://pixeldrain.com/api/file
+          
+          echo "Mengunggah $ROM_FILE ke akun Pixeldrain..."
+          
+          # To API Key
+          curl -X POST -u ":$PIXELDRAIN_API_KEY" -F "file=@$ROM_FILE" https://pixeldrain.com/api/file
