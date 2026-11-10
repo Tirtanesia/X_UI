@@ -35,40 +35,21 @@ jobs:
           retain: 'compiler_cmake'
 
       - name: Set up build environment
-        env:
-          PLATFORM_KEY_PK8: ${{ secrets.PLATFORM_KEY_PK8 }}
-          PLATFORM_KEY_PEM: ${{ secrets.PLATFORM_KEY_PEM }}
-          OTA_KEY_PK8: ${{ secrets.OTA_KEY_PK8 }}
-          OTA_KEY_PEM: ${{ secrets.OTA_KEY_PEM }}
         run: |
-          sudo apt-get update
-          DEBIAN_FRONTEND=noninteractive sudo apt-get install -yq \
-            attr bc ccache clang ffmpeg fuse3 libbrotli-dev libbz2-dev \
+          sudo apt update
+          DEBIAN_FRONTEND=noninteractive sudo apt install -yq \
+            attr ccache clang ffmpeg libbrotli-dev libbz2-dev \
             libgtest-dev libprotobuf-dev libunwind-dev libpcre2-dev \
-            libzstd-dev lld protobuf-compiler webp \
-            build-essential g++-aarch64-linux-gnu gcc-aarch64-linux-gnu \
-            python-is-python3 python3 wget
-
-          # EROFS extraction uses the project's userspace fuse.erofs tool.
-          # These modules are optional on hosted runners; do not make apt depend
-          # on a version-specific linux-modules-extra package unavailable there.
-          sudo modprobe fuse || echo "::warning::FUSE kernel module could not be loaded; EROFS extraction may fail."
-          sudo modprobe f2fs || echo "::warning::F2FS kernel module could not be loaded; F2FS firmware extraction may fail."
-
+            libzstd-dev linux-modules-extra-$(uname -r) lld protobuf-compiler webp \
+            build-essential g++-aarch64-linux-gnu gcc-aarch64-linux-gnu python-is-python3 python3 wget
+          wget https://raw.githubusercontent.com/kdrag0n/kramflash/refs/heads/master/mkbootimg.py && sudo ln -sf $(pwd)/mkbootimg.py /usr/bin/mkbootimg && chmod +x /usr/bin/mkbootimg
+          sudo modprobe erofs f2fs
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          for secret_name in PLATFORM_KEY_PK8 PLATFORM_KEY_PEM OTA_KEY_PK8 OTA_KEY_PEM; do
-            if [[ -z "${!secret_name}" ]]; then
-              echo "::error::Required Actions secret ${secret_name} is not configured."
-              exit 1
-            fi
-          done
-
-          printf '%s' "$PLATFORM_KEY_PK8" | base64 --decode > security/artisanrom_platform.pk8
-          printf '%s' "$PLATFORM_KEY_PEM" | base64 --decode > security/artisanrom_platform.x509.pem
-          printf '%s' "$OTA_KEY_PK8" | base64 --decode > security/artisanrom_ota.pk8
-          printf '%s' "$OTA_KEY_PEM" | base64 --decode > security/artisanrom_ota.x509.pem
+          echo -n "${{ secrets.PLATFORM_KEY_PK8 }}" | base64 --decode > security/artisanrom_platform.pk8
+          echo -n "${{ secrets.PLATFORM_KEY_PEM }}" | base64 --decode > security/artisanrom_platform.x509.pem
+          echo -n "${{ secrets.OTA_KEY_PK8 }}" | base64 --decode > security/artisanrom_ota.pk8
+          echo -n "${{ secrets.OTA_KEY_PEM }}" | base64 --decode > security/artisanrom_ota.x509.pem
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
