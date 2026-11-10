@@ -49,7 +49,7 @@ jobs:
           if [ "$(echo $KERNEL_VERSION | cut -d. -f1)" -lt 7 ]; then
             sudo apt install -y linux-modules-extra-$KERNEL_VERSION
           else
-            echo "Versi kernel 7+, paket linux-modules-extra dilewati karena sudah bawaan."
+            echo "Versi kernel 7+"
           fi
 
           wget https://raw.githubusercontent.com/kdrag0n/kramflash/refs/heads/master/mkbootimg.py && sudo ln -sf $(pwd)/mkbootimg.py /usr/bin/mkbootimg && chmod +x /usr/bin/mkbootimg
