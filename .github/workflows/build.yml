@@ -36,7 +36,9 @@ jobs:
 
       - name: Set up build environment
         run: |
-          sudo apt update
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          sudo apt-get update --fix-missing
           
           DEBIAN_FRONTEND=noninteractive sudo apt install -yq \
             attr ccache clang ffmpeg libbrotli-dev libbz2-dev \
