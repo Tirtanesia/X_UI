@@ -37,12 +37,12 @@ else
     LOG_STEP_IN "- Matching NFC antenna guide to target position $NFC_ANTPOS"
 
     SMALI_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
-        "smali_classes5/com/samsung/android/settings/nfc/NfcAntennaGuideDialog.smali" \
+        "smali_classes3/com/samsung/android/settings/nfc/NfcAntennaGuideDialog.smali" \
         "replace" "onCreate(Landroid/os/Bundle;)V" \
         "27" "$NFC_ANTPOS"
 
     SMALI_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
-        "smali_classes5/com/samsung/android/settings/nfc/NfcSettings.smali" \
+        "smali_classes3/com/samsung/android/settings/nfc/NfcSettings.smali" \
         "replace" "populateViewForOrientation(Lcom/android/settingslib/widget/LayoutPreference;)V" \
         "27" "$NFC_ANTPOS"
 
