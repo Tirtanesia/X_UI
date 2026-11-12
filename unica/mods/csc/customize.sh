@@ -10,11 +10,11 @@ SMALI_PATCH "system_ext" "priv-app/SystemUI/SystemUI.apk" \
     'isSupportPowerOffLock()Z' 'true'
 
 # Hide Remote management tile in Settings app
-DECODE_APK "system" "system/priv-app/SecSettings/SecSettings.apk"
-REMOTE_SUPPORT_CONTROLLER="$(find "$APKTOOL_DIR/system/priv-app/SecSettings/SecSettings.apk" \
-    -path '*/com/samsung/android/settings/homepage/TopLevelRemoteSupportPreferenceController.smali' -printf '%P\n' -quit)"
-SMALI_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
-    "$REMOTE_SUPPORT_CONTROLLER" "return" \
-    'getAvailabilityStatus()I' '3'
+# DECODE_APK "system" "system/priv-app/SecSettings/SecSettings.apk"
+# REMOTE_SUPPORT_CONTROLLER="$(find "$APKTOOL_DIR/system/priv-app/SecSettings/SecSettings.apk" \
+#    -path '*/com/samsung/android/settings/homepage/TopLevelRemoteSupportPreferenceController.smali' -printf '%P\n' -quit)"
+# SMALI_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" \
+#    "$REMOTE_SUPPORT_CONTROLLER" "return" \
+#    'getAvailabilityStatus()I' '3'
     
 unset SYSTEMUI_DEVICE_CONTROLLER REMOTE_SUPPORT_CONTROLLER
