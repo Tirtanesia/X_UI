@@ -67,7 +67,7 @@ index 8bd844f2..ae19591f 100644
  .method public static hasLauncherEntry(Lcom/android/internal/pm/parsing/pkg/ParsedPackage;)Z
      .locals 0
  
-@@ -3385,7 +3427,9 @@
+@@ -23220,7 +23262,9 @@
  
      const/4 v9, 0x1
  
@@ -78,7 +78,7 @@ index 8bd844f2..ae19591f 100644
  
      iget-object v2, v15, Lcom/android/server/pm/InstallPackageHelper;->mPm:Lcom/android/server/pm/PackageManagerService;
  
-@@ -3614,6 +3658,22 @@
+@@ -23770,6 +23814,22 @@
      move/from16 v4, v16
  
      invoke-static/range {v0 .. v5}, Lcom/android/server/pm/ScanPackageUtils;->collectCertificatesLI(Lcom/android/server/pm/PackageSetting;Lcom/android/internal/pm/parsing/pkg/ParsedPackage;Lcom/android/server/pm/Settings$VersionInfo;ZZZ)V
@@ -98,10 +98,10 @@ index 8bd844f2..ae19591f 100644
 +    move-result-object v14
 +
 +    invoke-static {v1, v2, v5, v14}, Lcom/android/server/pm/ScanPackageUtils;->setCustomSignatures(Lcom/android/internal/pm/parsing/pkg/ParsedPackage;Lcom/android/server/pm/pkg/AndroidPackage;[Landroid/content/pm/Signature;[Landroid/content/pm/Signature;)V
-     :try_end_c
-     .catch Lcom/android/server/pm/PackageManagerException; {:try_start_c .. :try_end_c} :catch_1
-     .catchall {:try_start_c .. :try_end_c} :catchall_4
-@@ -3990,7 +4050,9 @@
+     :try_end_10
+     .catch Lcom/android/server/pm/PackageManagerException; {:try_start_10 .. :try_end_10} :catch_1
+     .catchall {:try_start_10 .. :try_end_10} :catchall_4
+@@ -24710,7 +24770,9 @@
  
      iget-object v2, v2, Lcom/android/server/pm/PackageManagerService;->mPlatformPackage:Lcom/android/server/pm/pkg/AndroidPackage;
  
@@ -261,3 +261,4 @@ index 17567247..1fa651b2 100644
 +    :goto_0
 +    return p0
 +.end method
+
