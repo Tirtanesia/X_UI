@@ -118,13 +118,11 @@ jobs:
             out/*.tar*
             out/*.zip*
 
-      - name: Upload InstallPackageHelper.smali
+      - name: Print SystemServer StartKnoxGuard
         if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: smali-debug
-          path: out/target/c1s/apktool/system/framework/services.jar/smali_classes2/com/android/server/pm/InstallPackageHelper.smali
-          
+        run: |
+          grep -n -C 25 "StartKnoxGuard" out/target/c1s/apktool/system/framework/services.jar/smali/com/android/server/SystemServer.smali
+       
       - name: Upload Lotus-X
         env:
           PIXELDRAIN_API_KEY: ${{ secrets.PIXELDRAIN_API_KEY }}
