@@ -12,7 +12,8 @@ unset _SDHMS_XML
 NUKE_VERSION_METHOD() {
     python3 - "$1" "$2" << 'PYEOF'
 import sys, re
-path, method = sys.argv[1], sys.argv[2]
+path = sys.argv[1]
+method = sys.argv[2]
 with open(path) as f:
     content = f.read()
 pattern = re.compile(
@@ -35,39 +36,79 @@ with open(path, 'w') as f:
 PYEOF
 }
 
-# Nuke Knox HDM version (HdmManager method body differs in t2s vs S26U)
+# Nuke Knox HDM version in SecSettings
 DECODE_APK "system" "system/priv-app/SecSettings/SecSettings.apk" || return 1
-_HDM_SMALI="$APKTOOL_DIR/system/priv-app/SecSettings/SecSettings.apk/smali_classes4/com/samsung/android/knox/hdm/HdmManager.smali"
-LOG "- Nuking getHdmVersion() in /system/system/priv-app/SecSettings/SecSettings.apk/HdmManager.smali"
-NUKE_VERSION_METHOD "$_HDM_SMALI" getHdmVersion || { LOG "! ERROR: SecSettings HdmManager fix failed"; return 1; }
+_HDM_SMALI=$(find "$APKTOOL_DIR/system/priv-app/SecSettings/SecSettings.apk" -path "*/com/samsung/android/knox/hdm/HdmManager.smali" 2>/dev/null | head -n 1)
+if [ -n "$_HDM_SMALI" ]; then
+    LOG "- Nuking getHdmVersion() in ${_HDM_SMALI#$APKTOOL_DIR}"
+    NUKE_VERSION_METHOD "$_HDM_SMALI" getHdmVersion || { LOG "! ERROR: SecSettings HdmManager fix failed"; return 1; }
+else
+    LOG "- HdmManager.smali not found in SecSettings.apk, skipping..."
+fi
 unset _HDM_SMALI
 
 # Nuke Knox DualDAR and HDM version in SecSettingsIntelligence
 DECODE_APK "system" "system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk" || return 1
 _SSI_DIR="$APKTOOL_DIR/system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk"
-LOG "- Nuking getDualDARVersion() in /system/system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk"
-NUKE_VERSION_METHOD "$_SSI_DIR/smali_classes2/com/samsung/android/knox/ddar/DualDARPolicy.smali" getDualDARVersion || { LOG "! ERROR: SecSettingsIntelligence DualDARPolicy fix failed"; return 1; }
-LOG "- Nuking getHdmVersion() in /system/system/priv-app/SecSettingsIntelligence/SecSettingsIntelligence.apk"
-NUKE_VERSION_METHOD "$_SSI_DIR/smali_classes2/com/samsung/android/knox/hdm/HdmManager.smali" getHdmVersion || { LOG "! ERROR: SecSettingsIntelligence HdmManager fix failed"; return 1; }
-unset _SSI_DIR
+
+_SSI_DDAR_SMALI=$(find "$_SSI_DIR" -path "*/com/samsung/android/knox/ddar/DualDARPolicy.smali" 2>/dev/null | head -n 1)
+if [ -n "$_SSI_DDAR_SMALI" ]; then
+    LOG "- Nuking getDualDARVersion() in ${_SSI_DDAR_SMALI#$APKTOOL_DIR}"
+    NUKE_VERSION_METHOD "$_SSI_DDAR_SMALI" getDualDARVersion || { LOG "! ERROR: SecSettingsIntelligence DualDARPolicy fix failed"; return 1; }
+else
+    LOG "- DualDARPolicy.smali not found in SecSettingsIntelligence.apk, skipping..."
+fi
+
+_SSI_HDM_SMALI=$(find "$_SSI_DIR" -path "*/com/samsung/android/knox/hdm/HdmManager.smali" 2>/dev/null | head -n 1)
+if [ -n "$_SSI_HDM_SMALI" ]; then
+    LOG "- Nuking getHdmVersion() in ${_SSI_HDM_SMALI#$APKTOOL_DIR}"
+    NUKE_VERSION_METHOD "$_SSI_HDM_SMALI" getHdmVersion || { LOG "! ERROR: SecSettingsIntelligence HdmManager fix failed"; return 1; }
+else
+    LOG "- HdmManager.smali not found in SecSettingsIntelligence.apk, skipping..."
+fi
+unset _SSI_DIR _SSI_DDAR_SMALI _SSI_HDM_SMALI
 
 # Nuke Knox DualDAR and HDM version in knoxsdk.jar
 DECODE_APK "system" "system/framework/knoxsdk.jar" || return 1
 _KNOX_DIR="$APKTOOL_DIR/system/framework/knoxsdk.jar"
-LOG "- Nuking getDualDARVersion() in /system/system/framework/knoxsdk.jar"
-NUKE_VERSION_METHOD "$_KNOX_DIR/smali/com/samsung/android/knox/ddar/DualDARPolicy.smali" getDualDARVersion || { LOG "! ERROR: knoxsdk DualDARPolicy fix failed"; return 1; }
-LOG "- Nuking getHdmVersion() in /system/system/framework/knoxsdk.jar"
-NUKE_VERSION_METHOD "$_KNOX_DIR/smali/com/samsung/android/knox/hdm/HdmManager.smali" getHdmVersion || { LOG "! ERROR: knoxsdk HdmManager fix failed"; return 1; }
-unset _KNOX_DIR
+
+_KNOX_DDAR_SMALI=$(find "$_KNOX_DIR" -path "*/com/samsung/android/knox/ddar/DualDARPolicy.smali" 2>/dev/null | head -n 1)
+if [ -n "$_KNOX_DDAR_SMALI" ]; then
+    LOG "- Nuking getDualDARVersion() in ${_KNOX_DDAR_SMALI#$APKTOOL_DIR}"
+    NUKE_VERSION_METHOD "$_KNOX_DDAR_SMALI" getDualDARVersion || { LOG "! ERROR: knoxsdk DualDARPolicy fix failed"; return 1; }
+else
+    LOG "- DualDARPolicy.smali not found in knoxsdk.jar, skipping..."
+fi
+
+_KNOX_HDM_SMALI=$(find "$_KNOX_DIR" -path "*/com/samsung/android/knox/hdm/HdmManager.smali" 2>/dev/null | head -n 1)
+if [ -n "$_KNOX_HDM_SMALI" ]; then
+    LOG "- Nuking getHdmVersion() in ${_KNOX_HDM_SMALI#$APKTOOL_DIR}"
+    NUKE_VERSION_METHOD "$_KNOX_HDM_SMALI" getHdmVersion || { LOG "! ERROR: knoxsdk HdmManager fix failed"; return 1; }
+else
+    LOG "- HdmManager.smali not found in knoxsdk.jar, skipping..."
+fi
+unset _KNOX_DIR _KNOX_DDAR_SMALI _KNOX_HDM_SMALI
 
 # Nuke Knox DualDAR and HDM version in StorageManager
 DECODE_APK "system_ext" "priv-app/StorageManager/StorageManager.apk" || return 1
 _SM_DIR="$APKTOOL_DIR/system_ext/priv-app/StorageManager/StorageManager.apk"
-LOG "- Nuking getDualDARVersion() in /system_ext/priv-app/StorageManager/StorageManager.apk"
-NUKE_VERSION_METHOD "$_SM_DIR/smali/com/samsung/android/knox/ddar/DualDARPolicy.smali" getDualDARVersion || { LOG "! ERROR: StorageManager DualDARPolicy fix failed"; return 1; }
-LOG "- Nuking getHdmVersion() in /system_ext/priv-app/StorageManager/StorageManager.apk"
-NUKE_VERSION_METHOD "$_SM_DIR/smali/com/samsung/android/knox/hdm/HdmManager.smali" getHdmVersion || { LOG "! ERROR: StorageManager HdmManager fix failed"; return 1; }
-unset _SM_DIR
+
+_SM_DDAR_SMALI=$(find "$_SM_DIR" -path "*/com/samsung/android/knox/ddar/DualDARPolicy.smali" 2>/dev/null | head -n 1)
+if [ -n "$_SM_DDAR_SMALI" ]; then
+    LOG "- Nuking getDualDARVersion() in ${_SM_DDAR_SMALI#$APKTOOL_DIR}"
+    NUKE_VERSION_METHOD "$_SM_DDAR_SMALI" getDualDARVersion || { LOG "! ERROR: StorageManager DualDARPolicy fix failed"; return 1; }
+else
+    LOG "- DualDARPolicy.smali not found in StorageManager.apk, skipping..."
+fi
+
+_SM_HDM_SMALI=$(find "$_SM_DIR" -path "*/com/samsung/android/knox/hdm/HdmManager.smali" 2>/dev/null | head -n 1)
+if [ -n "$_SM_HDM_SMALI" ]; then
+    LOG "- Nuking getHdmVersion() in ${_SM_HDM_SMALI#$APKTOOL_DIR}"
+    NUKE_VERSION_METHOD "$_SM_HDM_SMALI" getHdmVersion || { LOG "! ERROR: StorageManager HdmManager fix failed"; return 1; }
+else
+    LOG "- HdmManager.smali not found in StorageManager.apk, skipping..."
+fi
+unset _SM_DIR _SM_DDAR_SMALI _SM_HDM_SMALI
 
 # KnoxGuard
 DELETE_FROM_WORK_DIR "system" "system/priv-app/KnoxGuard"
