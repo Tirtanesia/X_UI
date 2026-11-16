@@ -2,13 +2,20 @@ LOG_STEP_IN "- Enabling BSOH in SecSettings"
 
 DECODE_APK "system" "system/priv-app/SecSettings/SecSettings.apk"
 
-FTP="
-system/priv-app/SecSettings/SecSettings.apk/smali_classes5/com/samsung/android/settings/deviceinfo/batteryinfo/BatteryRegulatoryPreferenceController.smali
-system/priv-app/SecSettings/SecSettings.apk/smali_classes5/com/samsung/android/settings/deviceinfo/batteryinfo/SecBatteryInfoFragment.smali
+FILES="
+BatteryRegulatoryPreferenceController.smali
+SecBatteryInfoFragment.smali
 "
-for f in $FTP; do
-    sed -i "s/SM-A236B/SM-S731B/g" "$APKTOOL_DIR/$f"
+
+for file in $FILES; do
+    TARGET=$(find "$APKTOOL_DIR/system/priv-app/SecSettings/SecSettings.apk" -type f -name "$file" | head -n 1)
+    if [ -n "$TARGET" ]; then
+        sed -i "s/SM-A236B/SM-S731B/g" "$TARGET"
+    else
+        LOG "Warning: $file tidak ditemukan, melewati patch."
+    fi
 done
+
 LOG_STEP_OUT
 
 LOG_STEP_IN "- Enabling Cached App Freezer"
