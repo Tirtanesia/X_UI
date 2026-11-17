@@ -1,0 +1,62 @@
+name: Test Bluetooth Patch Only
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-bt:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo apt-get clean
+
+      - name: Checkout repo (Fast)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: recursive
+          shallow-submodules: true
+
+      - name: Set up build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y attr cpio erofs-utils f2fs-tools git lz4 python3 openjdk-21-jdk xxd zip unzip
+
+      - name: Install Rust Toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: aarch64-unknown-linux-gnu
+
+      - name: Build dependencies
+        run: |
+          chmod +x scripts/internal/gen_config_file.sh
+          source ./buildenv.sh c1s
+          ./scripts/build_dependencies.sh
+
+      - name: Download source firmware (S26+ donor)
+        run: |
+          source ./buildenv.sh c1s
+          ./scripts/download_fw.sh --force --ignore-target
+
+      - name: Extract source firmware (S26+ donor)
+        run: |
+          source ./buildenv.sh c1s
+          ./scripts/extract_fw.sh --force --ignore-target
+
+      - name: Run Isolated Bluetooth Patch Test
+        run: |
+          chmod +x scripts/apktool.sh
+          chmod +x scripts/utils/module_utils.sh
+          source ./buildenv.sh c1s
+          source ./scripts/utils/module_utils.sh
+
+          mkdir -p "$WORK_DIR/system/system/apex"
+          SOURCE_PATH="$(cut -d "/" -f 1 -s <<< "$SOURCE_FIRMWARE")_$(cut -d "/" -f 2 -s <<< "$SOURCE_FIRMWARE")"
+          cp -a "$FW_DIR/$SOURCE_PATH/system/system/apex/com.android.bt.apex" "$WORK_DIR/system/system/apex/"
+
+          echo "=== MULAI TES BLUETOOTH PATCH ==="
+          MODPATH="$SRC_DIR/unica/patches/bluetooth"
+          source "$MODPATH/customize.sh"
+          echo "=== SELESAI TES BLUETOOTH PATCH ==="
