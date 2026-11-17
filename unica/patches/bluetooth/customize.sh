@@ -7,11 +7,11 @@ SOURCE_FIRMWARE_PATH="$(cut -d "/" -f 1 -s <<< "$SOURCE_FIRMWARE")_$(cut -d "/" 
 # c1s (Galaxy Note 20) must not use S26+/S947B donor firmware or BP4A payloads.
 # This is not a valid ROM pairing, so we skip the unsupported Bluetooth patch steps
 # with a clear warning instead of crashing the build.
-if [[ "${WORK_DIR:-}" == *"/c1s/"* ]] && \
-   [[ "${SOURCE_FIRMWARE:-}" == *"S947B"* || "${SOURCE_FIRMWARE:-}" == *"S26"* || "${SOURCE_FIRMWARE:-}" == *"BP4A"* ]]; then
-    LOGW "Firmware mismatch detected: target c1s but source firmware is ${SOURCE_FIRMWARE}. This is not a compatible Note 20 donor. Skipping Bluetooth native patching."
-    return 0
-fi
+# if [[ "${WORK_DIR:-}" == *"/c1s/"* ]] && \
+#   [[ "${SOURCE_FIRMWARE:-}" == *"S947B"* || "${SOURCE_FIRMWARE:-}" == *"S26"* || "${SOURCE_FIRMWARE:-}" == *"BP4A"* ]]; then
+#   LOGW "Firmware mismatch detected: target c1s but source firmware is ${SOURCE_FIRMWARE}. This is not a compatible Note 20 donor. Skipping Bluetooth native patching."
+#   return 0
+# fi
 
 if [[ "$(sha1sum "$WORK_DIR/system/system/apex/com.android.bt.apex" | cut -d " " -f 1)" != \
         "$(sha1sum "$FW_DIR/$SOURCE_FIRMWARE_PATH/system/system/apex/com.android.bt.apex" | cut -d " " -f 1)" ]]; then
@@ -308,7 +308,7 @@ HEX_PATCH "$VK_LIB" "$VK_FROM" "$VK_TO" > /dev/null
 BUILD_APK_IN_APEX "$BT_APK"
 BUILD_APK_IN_APEX "$TMP_DIR/unknown/apex_payload/javalib/framework-bluetooth.jar"
 BUILD_PAYLOAD
-SIGN_PAYLOAD
+SIGN_PAYLOAD "$TMP_DIR/unknown/apex_payload.img"
 BUILD_APEX "$WORK_DIR/system/system/apex/com.android.bt.apex"
 SIGN_APEX "$WORK_DIR/system/system/apex/com.android.bt.apex"
 
