@@ -60,3 +60,10 @@ jobs:
           MODPATH="$SRC_DIR/unica/patches/bluetooth"
           source "$MODPATH/customize.sh"
           echo "=== SELESAI TES BLUETOOTH PATCH ==="
+
+      - name: Upload Patched Bluetooth APEX
+        uses: actions/upload-artifact@v4
+        with:
+          name: patched-bt-apex-c1s
+          path: out/target/c1s/work_dir/system/system/apex/com.android.bt.apex
+
