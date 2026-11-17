@@ -32,7 +32,7 @@ jobs:
       - name: Build dependencies
         run: |
           chmod +x scripts/internal/gen_config_file.sh
-          source ./buildenv.sh c1s
+          source ./buildenv.sh ${{ matrix.target }}
           ./scripts/build_dependencies.sh
 
       - name: Download source firmware (S26+ donor)
